@@ -1,0 +1,1684 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Harbor Sweep</title>
+<meta name="description" content="Pilot a trash-collecting harbor rover. Steer it yourself, then plan a route and watch it drive itself. A two-minute game for any phone.">
+<meta name="theme-color" content="#101d36">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Harbor Sweep">
+<meta property="og:description" content="Pilot a trash-collecting rover in a San Pedro harbor. Two minutes, any phone, no download.">
+<meta property="og:url" content="https://jaime888888.github.io/harbor-sweep/">
+<meta name="twitter:card" content="summary">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Harbor Sweep">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23101d36'/%3E%3Crect x='13' y='9' width='11' height='46' rx='5.5' fill='%23e8b53a'/%3E%3Crect x='40' y='9' width='11' height='46' rx='5.5' fill='%23e8b53a'/%3E%3Crect x='22' y='34' width='20' height='17' rx='3' fill='%23f4efe1'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Big+Shoulders+Display:wght@700;900&display=swap" rel="stylesheet">
+<style>
+:root{
+  /* One world: a working harbor seen from above. Colors come off the rover's hull. */
+  --navy:#101d36;      /* rover deck, cards */
+  --navy2:#18284a;     /* raised surfaces on cards */
+  --ink:#070e1c;       /* page behind the phone column */
+  --water:#1b777d;     /* harbor water */
+  --gold:#e8b53a;      /* rover panels, the one loud color */
+  --foam:#f4efe1;      /* text, wake, paper */
+  --coral:#f0714f;     /* warnings only */
+  --display:"Big Shoulders Display","Arial Narrow",Impact,sans-serif;
+  --body:"Atkinson Hyperlegible",Verdana,system-ui,sans-serif;
+  --hud:60px;
+  --st:env(safe-area-inset-top,0px);
+  --sb:env(safe-area-inset-bottom,0px);
+  color-scheme:dark;
+}
+*{box-sizing:border-box;margin:0}
+html,body{height:100%;background:var(--ink);color:var(--foam);font-family:var(--body);overflow:hidden;
+  -webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent;overscroll-behavior:none;-webkit-touch-callout:none}
+body{height:100vh;height:100dvh;
+  background:radial-gradient(1200px 700px at 70% 10%,#0f2440 0%,var(--ink) 60%)}
+#stage{height:100%;display:flex;justify-content:center;align-items:center;gap:64px}
+#app{position:relative;height:100%;width:100%;max-width:480px;overflow:hidden;background:var(--water);flex:0 1 480px}
+#sea{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none}
+.probe{position:absolute;left:0;top:0;width:0;visibility:hidden;pointer-events:none}
+
+/* Desktop: the game sits in a phone frame, a QR panel invites people to play on their own phones */
+#side{display:none}
+@media (min-width:980px) and (min-height:640px){
+  #app{height:min(calc(100% - 48px),900px);border-radius:30px;box-shadow:0 0 0 10px #172540,0 0 0 11px #24365a,0 40px 90px rgba(0,0,0,.6)}
+  #side{display:flex;flex-direction:column;gap:18px;width:320px}
+  #side h1{font-size:76px}
+  #side .qr{width:230px;padding:14px;background:#fff;border-radius:10px;box-shadow:0 20px 50px rgba(0,0,0,.45)}
+  #side p{font-size:17px;line-height:1.45;max-width:30ch;opacity:.9}
+}
+
+/* HUD */
+#hud{position:absolute;left:0;right:0;top:0;height:calc(var(--hud) + var(--st));padding:calc(8px + var(--st)) 14px 8px 10px;
+  display:flex;align-items:center;gap:12px;background:var(--navy);border-bottom:3px solid var(--gold);z-index:3}
+#hud .lvl{flex:1;min-width:0}
+#lvlName{font-family:var(--display);font-weight:900;font-size:20px;letter-spacing:.04em;line-height:1;text-transform:uppercase;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.meterrow{display:flex;align-items:center;gap:8px;margin-top:7px}
+#meter{flex:1;height:7px;background:rgba(244,239,225,.18);border-radius:4px;overflow:hidden}
+#meterFill{height:100%;width:100%;background:var(--gold);border-radius:4px;transform-origin:left;transition:background-color .3s}
+#meterFill.low{background:var(--coral)}
+#clock{font-family:var(--display);font-weight:900;font-size:17px;letter-spacing:.04em;font-variant-numeric:tabular-nums;min-width:36px;text-align:right}
+#clock.low{color:var(--coral);animation:pulse .5s ease-in-out infinite alternate}
+@keyframes pulse{to{opacity:.45}}
+#hud .num{text-align:right;line-height:1;min-width:44px}
+#hud .num b{display:block;font-family:var(--display);font-weight:900;font-size:32px;font-variant-numeric:tabular-nums;color:var(--gold)}
+#hud .num b.bump{animation:bump .28s ease-out}
+@keyframes bump{from{transform:scale(1.4)}to{transform:scale(1)}}
+#hud .num span{font-size:11px;letter-spacing:.08em;text-transform:uppercase;opacity:.8}
+button.icon{flex:0 0 40px;width:40px;height:40px;padding:0;background:transparent;color:var(--foam);display:grid;place-items:center;
+  box-shadow:inset 0 0 0 2px rgba(244,239,225,.28)}
+button.icon svg{width:16px;height:16px;fill:currentColor}
+
+#toast{position:absolute;left:16px;right:16px;top:calc(var(--hud) + var(--st) + 14px);z-index:3;display:flex;justify-content:center;pointer-events:none}
+#toast span{background:var(--foam);color:var(--navy);font-weight:700;font-size:15px;line-height:1.3;padding:9px 14px;border-radius:4px;
+  border-left:6px solid var(--coral);opacity:0;transform:translateY(-6px);transition:opacity .2s,transform .2s;text-wrap:balance;max-width:360px;
+  box-shadow:0 8px 24px rgba(0,0,0,.25)}
+#toast.good span{border-left-color:var(--gold)}
+#toast.on span{opacity:1;transform:none}
+
+/* Plan bar */
+#planbar{position:absolute;left:0;right:0;bottom:0;z-index:3;padding:10px 14px calc(12px + var(--sb));background:var(--navy);border-top:3px solid var(--gold);
+  display:flex;flex-direction:column;gap:8px}
+#planbar p{font-size:14px;line-height:1.3;min-height:2.6em}
+#planbar button{padding:10px 12px;font-size:20px}
+#planbar .row{display:flex;gap:8px}
+
+/* Cards */
+.scrim{position:absolute;inset:0;z-index:5;display:flex;align-items:center;justify-content:center;
+  padding:calc(16px + var(--st)) 16px calc(16px + var(--sb));background:rgba(7,14,28,.62);overflow-y:auto;-webkit-overflow-scrolling:touch}
+.scrim.bottom{align-items:flex-end;background:linear-gradient(to bottom,rgba(7,14,28,0) 0%,rgba(7,14,28,.15) 30%,rgba(7,14,28,.8) 100%)}
+.card{width:100%;max-width:400px;background:var(--navy);border-top:10px solid var(--gold);padding:22px 20px 20px;
+  display:flex;flex-direction:column;gap:14px;box-shadow:0 18px 50px rgba(0,0,0,.45);margin:auto;animation:rise .32s cubic-bezier(.2,.8,.2,1)}
+.scrim.bottom .card{margin:auto auto 0}
+@keyframes rise{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
+.eyebrow{font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--gold);font-weight:700}
+h1,h2{font-family:var(--display);font-weight:900;text-transform:uppercase;line-height:.9;text-wrap:balance}
+h1{font-size:clamp(48px,16vw,74px);letter-spacing:.01em}
+h1 em{font-style:normal;color:var(--gold);display:block}
+h2{font-size:36px;letter-spacing:.02em}
+h2 b{color:var(--gold)}
+.card p{font-size:16px;line-height:1.45;max-width:65ch}
+.steps{list-style:none;padding:0;display:flex;flex-direction:column;gap:10px}
+.steps li{display:flex;gap:12px;align-items:baseline;font-size:16px;line-height:1.35}
+.steps li i{font-style:normal;font-family:var(--display);font-weight:900;font-size:22px;color:var(--gold);min-width:16px}
+.rule{height:1px;background:rgba(244,239,225,.2)}
+.small{font-size:12.5px !important;line-height:1.45 !important;opacity:.78}
+.small a{color:var(--foam)}
+.row{display:flex;gap:10px}
+button{font-family:var(--display);font-weight:900;font-size:24px;letter-spacing:.06em;text-transform:uppercase;
+  border:0;border-radius:4px;padding:14px 18px;cursor:pointer;color:var(--navy);background:var(--gold);flex:1;touch-action:manipulation}
+button:active{transform:translateY(2px)}
+button:focus-visible,a:focus-visible{outline:3px solid var(--foam);outline-offset:3px}
+button.ghost{background:transparent;color:var(--foam);box-shadow:inset 0 0 0 2px rgba(244,239,225,.5);flex:0 0 auto}
+button.ghost.grow{flex:1}
+button.sm{font-size:17px;padding:9px 12px}
+button:disabled{opacity:.4;cursor:default}
+button.linkish{background:none;color:var(--foam);font-family:var(--body);font-weight:700;font-size:14px;letter-spacing:0;text-transform:none;
+  text-decoration:underline;text-underline-offset:3px;padding:6px 0;flex:0 0 auto;align-self:flex-start;opacity:.85}
+
+/* End-screen data */
+.rankrow{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.rank{font-family:var(--display);font-weight:900;font-size:22px;letter-spacing:.08em;text-transform:uppercase;color:var(--foam)}
+.stars{display:flex;gap:4px;margin-top:6px}
+.stars svg{width:26px;height:26px}
+.stars .on{fill:var(--gold)}
+.stars .off{fill:rgba(244,239,225,.16)}
+.stars svg{transform:scale(0);animation:pop .4s cubic-bezier(.3,1.6,.5,1) forwards}
+.stars svg:nth-child(2){animation-delay:.15s}.stars svg:nth-child(3){animation-delay:.3s}
+@keyframes pop{to{transform:scale(1)}}
+.badge{font-family:var(--display);font-weight:900;font-size:15px;letter-spacing:.1em;text-transform:uppercase;background:var(--coral);color:var(--navy);
+  padding:6px 10px;border-radius:3px;transform:rotate(4deg);white-space:nowrap}
+.capture{display:flex;gap:14px;align-items:center;background:rgba(244,239,225,.06);padding:12px;border-radius:4px}
+.capture svg{flex:0 0 78px;width:78px;height:78px}
+.capture .trk{fill:none;stroke:rgba(244,239,225,.14);stroke-width:9}
+.capture .fil{fill:none;stroke:var(--gold);stroke-width:9;stroke-linecap:round;transform:rotate(-90deg);transform-origin:40px 40px;
+  stroke-dasharray:201.06;stroke-dashoffset:201.06;transition:stroke-dashoffset 1.1s cubic-bezier(.2,.8,.2,1) .2s}
+.capture text{fill:var(--foam);font-family:var(--display);font-weight:900;font-size:22px;text-anchor:middle;dominant-baseline:central}
+.capture p{font-size:15px !important;line-height:1.4 !important}
+.totals{display:flex;gap:10px}
+.totals div{flex:1;background:rgba(244,239,225,.08);padding:10px 12px;border-radius:4px;min-width:0}
+.totals b{display:block;font-family:var(--display);font-weight:900;font-size:38px;line-height:1;color:var(--gold);font-variant-numeric:tabular-nums}
+.totals span{font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;opacity:.85}
+.bars{display:flex;flex-direction:column;gap:7px}
+.bar{display:grid;grid-template-columns:118px 1fr 26px;gap:8px;align-items:center;font-size:14px}
+.bar .track{height:14px;background:rgba(244,239,225,.1);border-radius:2px;overflow:hidden}
+.bar .fill{height:100%;border-radius:2px;min-width:2px;transform-origin:left;animation:grow .9s cubic-bezier(.2,.8,.2,1) both}
+@keyframes grow{from{transform:scaleX(0)}}
+.bar .n{text-align:right;font-weight:700;font-variant-numeric:tabular-nums}
+.facts{list-style:none;padding:0;display:flex;flex-direction:column;gap:6px;font-size:15px;line-height:1.35}
+.facts li{padding-left:14px;border-left:3px solid var(--gold)}
+.qr{display:block;width:min(240px,62vw);margin:0 auto;padding:12px;background:#fff;border-radius:8px}
+.qr svg{display:block;width:100%;height:auto}
+.url{font-weight:700;font-size:15px !important;text-align:center;letter-spacing:.01em;word-break:break-all}
+.center{text-align:center;align-items:stretch}
+.center h2{text-align:center}
+
+#rotate{position:fixed;inset:0;z-index:30;background:var(--navy);display:none;flex-direction:column;align-items:center;justify-content:center;
+  gap:14px;text-align:center;padding:24px}
+#rotate svg{width:56px;height:56px;fill:none;stroke:var(--gold);stroke-width:3}
+#rotate b{font-family:var(--display);font-size:30px;text-transform:uppercase;letter-spacing:.04em}
+@media (orientation:landscape) and (max-height:500px) and (pointer:coarse){#rotate{display:flex}}
+[hidden]{display:none !important}
+@media (prefers-reduced-motion:reduce){
+  #toast span,.card,.stars svg,.bar .fill,#hud .num b.bump,#clock.low{transition:none;animation:none}
+  .stars svg{transform:none}
+}
+</style>
+</head>
+<body>
+<div id="stage">
+  <aside id="side" aria-label="Play on your phone">
+    <div class="eyebrow">West Harbor · San Pedro</div>
+    <h1>Harbor <em>Sweep</em></h1>
+    <p>Scan with your phone camera to play. No app, no sign-in, about two minutes.</p>
+    <div class="qr"><svg viewBox="-2 -2 37 37" role="img" aria-label="QR code that opens jaime888888.github.io/harbor-sweep" shape-rendering="crispEdges"><rect x="-2" y="-2" width="37" height="37" fill="#fff"/><path fill="#101d36" d="M0 0h7v1h-7zM8 0h2v1h-2zM14 0h1v1h-1zM16 0h4v1h-4zM21 0h1v1h-1zM23 0h2v1h-2zM26 0h7v1h-7zM0 1h1v1h-1zM6 1h1v1h-1zM8 1h8v1h-8zM18 1h7v1h-7zM26 1h1v1h-1zM32 1h1v1h-1zM0 2h1v1h-1zM2 2h3v1h-3zM6 2h1v1h-1zM8 2h1v1h-1zM12 2h2v1h-2zM15 2h5v1h-5zM26 2h1v1h-1zM28 2h3v1h-3zM32 2h1v1h-1zM0 3h1v1h-1zM2 3h3v1h-3zM6 3h1v1h-1zM8 3h2v1h-2zM11 3h1v1h-1zM13 3h1v1h-1zM16 3h4v1h-4zM22 3h2v1h-2zM26 3h1v1h-1zM28 3h3v1h-3zM32 3h1v1h-1zM0 4h1v1h-1zM2 4h3v1h-3zM6 4h1v1h-1zM8 4h2v1h-2zM12 4h1v1h-1zM15 4h1v1h-1zM17 4h2v1h-2zM20 4h2v1h-2zM23 4h2v1h-2zM26 4h1v1h-1zM28 4h3v1h-3zM32 4h1v1h-1zM0 5h1v1h-1zM6 5h1v1h-1zM9 5h1v1h-1zM15 5h1v1h-1zM17 5h1v1h-1zM19 5h1v1h-1zM21 5h1v1h-1zM23 5h1v1h-1zM26 5h1v1h-1zM32 5h1v1h-1zM0 6h7v1h-7zM8 6h1v1h-1zM10 6h1v1h-1zM12 6h1v1h-1zM14 6h1v1h-1zM16 6h1v1h-1zM18 6h1v1h-1zM20 6h1v1h-1zM22 6h1v1h-1zM24 6h1v1h-1zM26 6h7v1h-7zM8 7h1v1h-1zM10 7h2v1h-2zM13 7h1v1h-1zM15 7h5v1h-5zM21 7h1v1h-1zM1 8h2v1h-2zM4 8h1v1h-1zM6 8h2v1h-2zM9 8h1v1h-1zM13 8h3v1h-3zM17 8h1v1h-1zM20 8h3v1h-3zM24 8h1v1h-1zM26 8h1v1h-1zM28 8h5v1h-5zM1 9h2v1h-2zM7 9h1v1h-1zM9 9h2v1h-2zM12 9h4v1h-4zM17 9h2v1h-2zM20 9h3v1h-3zM24 9h4v1h-4zM31 9h2v1h-2zM1 10h2v1h-2zM4 10h5v1h-5zM10 10h1v1h-1zM14 10h2v1h-2zM18 10h1v1h-1zM20 10h3v1h-3zM27 10h1v1h-1zM30 10h3v1h-3zM1 11h2v1h-2zM4 11h2v1h-2zM7 11h3v1h-3zM11 11h1v1h-1zM13 11h2v1h-2zM17 11h2v1h-2zM20 11h6v1h-6zM28 11h1v1h-1zM2 12h2v1h-2zM5 12h2v1h-2zM8 12h3v1h-3zM13 12h2v1h-2zM18 12h4v1h-4zM23 12h1v1h-1zM25 12h2v1h-2zM29 12h1v1h-1zM31 12h2v1h-2zM0 13h1v1h-1zM2 13h4v1h-4zM9 13h1v1h-1zM11 13h1v1h-1zM13 13h1v1h-1zM15 13h1v1h-1zM18 13h2v1h-2zM22 13h1v1h-1zM24 13h3v1h-3zM29 13h1v1h-1zM32 13h1v1h-1zM0 14h1v1h-1zM3 14h1v1h-1zM6 14h1v1h-1zM8 14h1v1h-1zM10 14h2v1h-2zM13 14h1v1h-1zM17 14h2v1h-2zM22 14h1v1h-1zM25 14h1v1h-1zM27 14h1v1h-1zM31 14h2v1h-2zM1 15h1v1h-1zM4 15h1v1h-1zM7 15h3v1h-3zM11 15h1v1h-1zM13 15h3v1h-3zM18 15h1v1h-1zM20 15h2v1h-2zM24 15h1v1h-1zM26 15h1v1h-1zM28 15h2v1h-2zM31 15h1v1h-1zM0 16h1v1h-1zM2 16h2v1h-2zM6 16h1v1h-1zM8 16h1v1h-1zM11 16h1v1h-1zM14 16h3v1h-3zM18 16h9v1h-9zM0 17h2v1h-2zM3 17h2v1h-2zM7 17h1v1h-1zM10 17h6v1h-6zM17 17h1v1h-1zM21 17h2v1h-2zM24 17h4v1h-4zM32 17h1v1h-1zM0 18h1v1h-1zM2 18h1v1h-1zM5 18h2v1h-2zM8 18h4v1h-4zM14 18h2v1h-2zM17 18h2v1h-2zM20 18h2v1h-2zM26 18h1v1h-1zM30 18h3v1h-3zM0 19h6v1h-6zM8 19h2v1h-2zM11 19h2v1h-2zM15 19h1v1h-1zM18 19h2v1h-2zM21 19h3v1h-3zM27 19h2v1h-2zM31 19h1v1h-1zM0 20h1v1h-1zM4 20h1v1h-1zM6 20h2v1h-2zM12 20h3v1h-3zM16 20h2v1h-2zM19 20h3v1h-3zM23 20h4v1h-4zM29 20h1v1h-1zM1 21h1v1h-1zM5 21h1v1h-1zM9 21h3v1h-3zM13 21h1v1h-1zM15 21h1v1h-1zM17 21h1v1h-1zM24 21h1v1h-1zM26 21h2v1h-2zM30 21h3v1h-3zM0 22h1v1h-1zM2 22h1v1h-1zM4 22h1v1h-1zM6 22h2v1h-2zM10 22h1v1h-1zM12 22h1v1h-1zM14 22h4v1h-4zM20 22h1v1h-1zM22 22h1v1h-1zM24 22h1v1h-1zM27 22h1v1h-1zM31 22h2v1h-2zM1 23h3v1h-3zM8 23h1v1h-1zM10 23h1v1h-1zM14 23h4v1h-4zM19 23h1v1h-1zM21 23h1v1h-1zM25 23h2v1h-2zM28 23h1v1h-1zM32 23h1v1h-1zM0 24h1v1h-1zM2 24h1v1h-1zM4 24h3v1h-3zM8 24h2v1h-2zM11 24h1v1h-1zM13 24h2v1h-2zM16 24h3v1h-3zM21 24h2v1h-2zM24 24h5v1h-5zM8 25h1v1h-1zM11 25h1v1h-1zM15 25h1v1h-1zM21 25h4v1h-4zM28 25h2v1h-2zM31 25h2v1h-2zM0 26h7v1h-7zM8 26h1v1h-1zM10 26h1v1h-1zM12 26h3v1h-3zM17 26h1v1h-1zM20 26h1v1h-1zM23 26h2v1h-2zM26 26h1v1h-1zM28 26h1v1h-1zM30 26h3v1h-3zM0 27h1v1h-1zM6 27h1v1h-1zM9 27h1v1h-1zM11 27h1v1h-1zM13 27h1v1h-1zM19 27h1v1h-1zM21 27h2v1h-2zM24 27h1v1h-1zM28 27h1v1h-1zM31 27h1v1h-1zM0 28h1v1h-1zM2 28h3v1h-3zM6 28h1v1h-1zM8 28h4v1h-4zM13 28h1v1h-1zM19 28h1v1h-1zM21 28h1v1h-1zM24 28h6v1h-6zM31 28h2v1h-2zM0 29h1v1h-1zM2 29h3v1h-3zM6 29h1v1h-1zM10 29h3v1h-3zM14 29h4v1h-4zM20 29h1v1h-1zM28 29h5v1h-5zM0 30h1v1h-1zM2 30h3v1h-3zM6 30h1v1h-1zM8 30h2v1h-2zM12 30h1v1h-1zM14 30h2v1h-2zM18 30h1v1h-1zM22 30h1v1h-1zM24 30h1v1h-1zM28 30h3v1h-3zM32 30h1v1h-1zM0 31h1v1h-1zM6 31h1v1h-1zM8 31h1v1h-1zM10 31h1v1h-1zM12 31h1v1h-1zM15 31h1v1h-1zM19 31h3v1h-3zM23 31h3v1h-3zM28 31h1v1h-1zM31 31h1v1h-1zM0 32h7v1h-7zM10 32h1v1h-1zM15 32h1v1h-1zM18 32h1v1h-1zM21 32h4v1h-4zM28 32h1v1h-1zM31 32h2v1h-2z"/></svg></div>
+    <p class="small">jaime888888.github.io/harbor-sweep</p>
+  </aside>
+
+  <div id="app">
+    <canvas id="sea" aria-label="Top-down view of a harbor with a trash-collecting rover"></canvas>
+    <div class="probe" id="probeT" style="height:calc(var(--hud) + var(--st))"></div>
+    <div class="probe" id="probeB" style="height:var(--sb)"></div>
+
+    <div id="hud" hidden>
+      <button class="icon" id="btnPause" type="button" aria-label="Pause">
+        <svg viewBox="0 0 16 16"><rect x="3" y="2" width="3.6" height="12" rx="1"/><rect x="9.4" y="2" width="3.6" height="12" rx="1"/></svg>
+      </button>
+      <div class="lvl">
+        <div id="lvlName">Level 1 · Remote control</div>
+        <div class="meterrow"><div id="meter"><div id="meterFill"></div></div><span id="clock">0:40</span></div>
+      </div>
+      <div class="num"><b id="count">0</b><span>items</span></div>
+    </div>
+    <div id="toast" aria-live="polite"><span id="toastText"></span></div>
+
+    <div id="planbar" hidden>
+      <p id="planHint">Drag a route from the rover, or tap to drop waypoints.</p>
+      <div class="row">
+        <button class="ghost" id="btnUndo" type="button">Undo</button>
+        <button class="ghost" id="btnClear" type="button">Clear</button>
+        <button id="btnLaunch" type="button" disabled>Launch</button>
+      </div>
+    </div>
+
+    <!-- Title -->
+    <div class="scrim bottom" id="c-title">
+      <div class="card">
+        <div class="eyebrow">West Harbor · San Pedro</div>
+        <h1>Harbor <em>Sweep</em></h1>
+        <p>Trash washes out of storm drains and drifts toward the ocean. Pilot the robot that scoops it up first. Steer it yourself, then plan a route and let it drive alone.</p>
+        <div class="row"><button id="btnStart" type="button">Start sweep</button></div>
+        <div class="row">
+          <button class="ghost sm grow" id="btnSound" type="button" aria-pressed="true">Sound on</button>
+          <button class="ghost sm grow" id="btnQR" type="button">Share game</button>
+        </div>
+        <p class="small"><span id="bestLine"></span>About 2 minutes. Student concept by a USC WRIT 340 ATLAS team for Clean Earth Rovers.</p>
+      </div>
+    </div>
+
+    <!-- Level 1 briefing -->
+    <div class="scrim" id="c-brief1" hidden>
+      <div class="card">
+        <div class="eyebrow">Level 1 of 2</div>
+        <h2>Remote <b>control</b></h2>
+        <ul class="steps">
+          <li><i>1</i><span><strong>Drag anywhere</strong> to steer. Arrow keys work too.</span></li>
+          <li><i>2</i><span><strong>Scoop trash</strong> with the open front before the current carries it out to sea.</span></li>
+          <li><i>3</i><span>The basket holds <strong><span id="basketN">10</span> pieces</strong>. Empty it at the catch bin on the dock.</span></li>
+          <li><i>4</i><span><strong>Give room</strong> to boats and sea lions. Bumping them costs you time.</span></li>
+        </ul>
+        <p class="small">You have <span id="l1secs">40</span> seconds.</p>
+        <div class="row"><button id="btnGo1" type="button">Take the controls</button></div>
+      </div>
+    </div>
+
+    <!-- Level 1 result + Level 2 briefing -->
+    <div class="scrim" id="c-result1" hidden>
+      <div class="card">
+        <div class="eyebrow">Level 1 complete</div>
+        <h2>You scooped <b id="r1n">0</b></h2>
+        <p id="r1detail"></p>
+        <p>Real operators steer the rover the same way, standing on the dock with a handheld controller.</p>
+        <div class="rule"></div>
+        <div class="eyebrow">Level 2 of 2</div>
+        <h2>Auto<b>pilot</b></h2>
+        <ul class="steps">
+          <li><i>1</i><span><strong>Draw a route</strong> from the rover. Drag, or tap to drop waypoints.</span></li>
+          <li><i>2</i><span>Dotted trails show where the <strong>current</strong> will carry each piece. Numbers on your route show <strong>when the rover gets there</strong>.</span></li>
+          <li><i>3</i><span><strong>Launch.</strong> The rover drives alone and stops by itself for boats and wildlife.</span></li>
+        </ul>
+        <div class="row"><button id="btnPlan" type="button">Plan the route</button></div>
+      </div>
+    </div>
+
+    <!-- End -->
+    <div class="scrim" id="c-end" hidden>
+      <div class="card">
+        <div class="eyebrow">Your sweep data</div>
+        <div class="rankrow">
+          <div><div class="rank" id="rankName">Rover pilot</div><div class="stars" id="stars"></div></div>
+          <span class="badge" id="newBest" hidden>New best</span>
+        </div>
+        <h2><b id="endTotal">0</b> pieces out of the harbor</h2>
+        <div class="capture">
+          <svg viewBox="0 0 80 80" aria-hidden="true"><circle class="trk" cx="40" cy="40" r="32"/><circle class="fil" id="ringFill" cx="40" cy="40" r="32"/><text x="40" y="41" id="ringText">0%</text></svg>
+          <p id="captureText"></p>
+        </div>
+        <div class="totals">
+          <div><b id="endL1">0</b><span>Remote control</span></div>
+          <div><b id="endL2">0</b><span>Autopilot</span></div>
+          <div><b id="endStops">0</b><span>Safety stops</span></div>
+        </div>
+        <p id="endInsight"></p>
+        <div class="row">
+          <button id="btnAgain" type="button">Sweep again</button>
+          <button class="ghost" id="btnShare" type="button">Share</button>
+        </div>
+        <div class="rule"></div>
+        <div class="eyebrow">What you collected</div>
+        <div class="bars" id="endBars"></div>
+        <p class="small">The real rover crew sorts and counts its catch the same way, so the harbor knows what kind of trash is getting in.</p>
+        <div class="rule"></div>
+        <div class="eyebrow">The real rover</div>
+        <ul class="facts" id="endFacts"></ul>
+        <p class="small" id="endSources"></p>
+        <button class="linkish" id="btnQR2" type="button">Show a QR code so a friend can play</button>
+      </div>
+    </div>
+
+    <!-- Pause -->
+    <div class="scrim" id="c-pause" hidden>
+      <div class="card">
+        <div class="eyebrow">Paused</div>
+        <h2>Holding <b>position</b></h2>
+        <div class="row"><button id="btnResume" type="button">Resume</button></div>
+        <div class="row">
+          <button class="ghost sm grow" id="btnSound2" type="button" aria-pressed="true">Sound on</button>
+          <button class="ghost sm grow" id="btnRestart" type="button">Restart</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- QR -->
+    <div class="scrim" id="c-qr" hidden>
+      <div class="card center">
+        <div class="eyebrow">Pass it on</div>
+        <h2>Scan to <b>play</b></h2>
+        <div class="qr"><svg viewBox="-2 -2 37 37" role="img" aria-label="QR code that opens jaime888888.github.io/harbor-sweep" shape-rendering="crispEdges"><rect x="-2" y="-2" width="37" height="37" fill="#fff"/><path fill="#101d36" d="M0 0h7v1h-7zM8 0h2v1h-2zM14 0h1v1h-1zM16 0h4v1h-4zM21 0h1v1h-1zM23 0h2v1h-2zM26 0h7v1h-7zM0 1h1v1h-1zM6 1h1v1h-1zM8 1h8v1h-8zM18 1h7v1h-7zM26 1h1v1h-1zM32 1h1v1h-1zM0 2h1v1h-1zM2 2h3v1h-3zM6 2h1v1h-1zM8 2h1v1h-1zM12 2h2v1h-2zM15 2h5v1h-5zM26 2h1v1h-1zM28 2h3v1h-3zM32 2h1v1h-1zM0 3h1v1h-1zM2 3h3v1h-3zM6 3h1v1h-1zM8 3h2v1h-2zM11 3h1v1h-1zM13 3h1v1h-1zM16 3h4v1h-4zM22 3h2v1h-2zM26 3h1v1h-1zM28 3h3v1h-3zM32 3h1v1h-1zM0 4h1v1h-1zM2 4h3v1h-3zM6 4h1v1h-1zM8 4h2v1h-2zM12 4h1v1h-1zM15 4h1v1h-1zM17 4h2v1h-2zM20 4h2v1h-2zM23 4h2v1h-2zM26 4h1v1h-1zM28 4h3v1h-3zM32 4h1v1h-1zM0 5h1v1h-1zM6 5h1v1h-1zM9 5h1v1h-1zM15 5h1v1h-1zM17 5h1v1h-1zM19 5h1v1h-1zM21 5h1v1h-1zM23 5h1v1h-1zM26 5h1v1h-1zM32 5h1v1h-1zM0 6h7v1h-7zM8 6h1v1h-1zM10 6h1v1h-1zM12 6h1v1h-1zM14 6h1v1h-1zM16 6h1v1h-1zM18 6h1v1h-1zM20 6h1v1h-1zM22 6h1v1h-1zM24 6h1v1h-1zM26 6h7v1h-7zM8 7h1v1h-1zM10 7h2v1h-2zM13 7h1v1h-1zM15 7h5v1h-5zM21 7h1v1h-1zM1 8h2v1h-2zM4 8h1v1h-1zM6 8h2v1h-2zM9 8h1v1h-1zM13 8h3v1h-3zM17 8h1v1h-1zM20 8h3v1h-3zM24 8h1v1h-1zM26 8h1v1h-1zM28 8h5v1h-5zM1 9h2v1h-2zM7 9h1v1h-1zM9 9h2v1h-2zM12 9h4v1h-4zM17 9h2v1h-2zM20 9h3v1h-3zM24 9h4v1h-4zM31 9h2v1h-2zM1 10h2v1h-2zM4 10h5v1h-5zM10 10h1v1h-1zM14 10h2v1h-2zM18 10h1v1h-1zM20 10h3v1h-3zM27 10h1v1h-1zM30 10h3v1h-3zM1 11h2v1h-2zM4 11h2v1h-2zM7 11h3v1h-3zM11 11h1v1h-1zM13 11h2v1h-2zM17 11h2v1h-2zM20 11h6v1h-6zM28 11h1v1h-1zM2 12h2v1h-2zM5 12h2v1h-2zM8 12h3v1h-3zM13 12h2v1h-2zM18 12h4v1h-4zM23 12h1v1h-1zM25 12h2v1h-2zM29 12h1v1h-1zM31 12h2v1h-2zM0 13h1v1h-1zM2 13h4v1h-4zM9 13h1v1h-1zM11 13h1v1h-1zM13 13h1v1h-1zM15 13h1v1h-1zM18 13h2v1h-2zM22 13h1v1h-1zM24 13h3v1h-3zM29 13h1v1h-1zM32 13h1v1h-1zM0 14h1v1h-1zM3 14h1v1h-1zM6 14h1v1h-1zM8 14h1v1h-1zM10 14h2v1h-2zM13 14h1v1h-1zM17 14h2v1h-2zM22 14h1v1h-1zM25 14h1v1h-1zM27 14h1v1h-1zM31 14h2v1h-2zM1 15h1v1h-1zM4 15h1v1h-1zM7 15h3v1h-3zM11 15h1v1h-1zM13 15h3v1h-3zM18 15h1v1h-1zM20 15h2v1h-2zM24 15h1v1h-1zM26 15h1v1h-1zM28 15h2v1h-2zM31 15h1v1h-1zM0 16h1v1h-1zM2 16h2v1h-2zM6 16h1v1h-1zM8 16h1v1h-1zM11 16h1v1h-1zM14 16h3v1h-3zM18 16h9v1h-9zM0 17h2v1h-2zM3 17h2v1h-2zM7 17h1v1h-1zM10 17h6v1h-6zM17 17h1v1h-1zM21 17h2v1h-2zM24 17h4v1h-4zM32 17h1v1h-1zM0 18h1v1h-1zM2 18h1v1h-1zM5 18h2v1h-2zM8 18h4v1h-4zM14 18h2v1h-2zM17 18h2v1h-2zM20 18h2v1h-2zM26 18h1v1h-1zM30 18h3v1h-3zM0 19h6v1h-6zM8 19h2v1h-2zM11 19h2v1h-2zM15 19h1v1h-1zM18 19h2v1h-2zM21 19h3v1h-3zM27 19h2v1h-2zM31 19h1v1h-1zM0 20h1v1h-1zM4 20h1v1h-1zM6 20h2v1h-2zM12 20h3v1h-3zM16 20h2v1h-2zM19 20h3v1h-3zM23 20h4v1h-4zM29 20h1v1h-1zM1 21h1v1h-1zM5 21h1v1h-1zM9 21h3v1h-3zM13 21h1v1h-1zM15 21h1v1h-1zM17 21h1v1h-1zM24 21h1v1h-1zM26 21h2v1h-2zM30 21h3v1h-3zM0 22h1v1h-1zM2 22h1v1h-1zM4 22h1v1h-1zM6 22h2v1h-2zM10 22h1v1h-1zM12 22h1v1h-1zM14 22h4v1h-4zM20 22h1v1h-1zM22 22h1v1h-1zM24 22h1v1h-1zM27 22h1v1h-1zM31 22h2v1h-2zM1 23h3v1h-3zM8 23h1v1h-1zM10 23h1v1h-1zM14 23h4v1h-4zM19 23h1v1h-1zM21 23h1v1h-1zM25 23h2v1h-2zM28 23h1v1h-1zM32 23h1v1h-1zM0 24h1v1h-1zM2 24h1v1h-1zM4 24h3v1h-3zM8 24h2v1h-2zM11 24h1v1h-1zM13 24h2v1h-2zM16 24h3v1h-3zM21 24h2v1h-2zM24 24h5v1h-5zM8 25h1v1h-1zM11 25h1v1h-1zM15 25h1v1h-1zM21 25h4v1h-4zM28 25h2v1h-2zM31 25h2v1h-2zM0 26h7v1h-7zM8 26h1v1h-1zM10 26h1v1h-1zM12 26h3v1h-3zM17 26h1v1h-1zM20 26h1v1h-1zM23 26h2v1h-2zM26 26h1v1h-1zM28 26h1v1h-1zM30 26h3v1h-3zM0 27h1v1h-1zM6 27h1v1h-1zM9 27h1v1h-1zM11 27h1v1h-1zM13 27h1v1h-1zM19 27h1v1h-1zM21 27h2v1h-2zM24 27h1v1h-1zM28 27h1v1h-1zM31 27h1v1h-1zM0 28h1v1h-1zM2 28h3v1h-3zM6 28h1v1h-1zM8 28h4v1h-4zM13 28h1v1h-1zM19 28h1v1h-1zM21 28h1v1h-1zM24 28h6v1h-6zM31 28h2v1h-2zM0 29h1v1h-1zM2 29h3v1h-3zM6 29h1v1h-1zM10 29h3v1h-3zM14 29h4v1h-4zM20 29h1v1h-1zM28 29h5v1h-5zM0 30h1v1h-1zM2 30h3v1h-3zM6 30h1v1h-1zM8 30h2v1h-2zM12 30h1v1h-1zM14 30h2v1h-2zM18 30h1v1h-1zM22 30h1v1h-1zM24 30h1v1h-1zM28 30h3v1h-3zM32 30h1v1h-1zM0 31h1v1h-1zM6 31h1v1h-1zM8 31h1v1h-1zM10 31h1v1h-1zM12 31h1v1h-1zM15 31h1v1h-1zM19 31h3v1h-3zM23 31h3v1h-3zM28 31h1v1h-1zM31 31h1v1h-1zM0 32h7v1h-7zM10 32h1v1h-1zM15 32h1v1h-1zM18 32h1v1h-1zM21 32h4v1h-4zM28 32h1v1h-1zM31 32h2v1h-2z"/></svg></div>
+        <p class="url">jaime888888.github.io/harbor-sweep</p>
+        <div class="row"><button id="btnQRClose" type="button">Done</button></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="rotate" role="alert">
+  <svg viewBox="0 0 56 56"><rect x="17" y="6" width="22" height="40" rx="4"/><path d="M8 34a20 20 0 0 0 14 16M48 22A20 20 0 0 0 34 6"/></svg>
+  <b>Turn your phone upright</b>
+  <span>Harbor Sweep plays in portrait.</span>
+</div>
+
+<noscript><p style="position:fixed;inset:auto 16px 16px;padding:12px;background:#101d36;color:#f4efe1">Harbor Sweep needs JavaScript turned on.</p></noscript>
+
+<script>
+(() => {
+"use strict";
+
+/* ------------------------------------------------------------------
+   EDIT HERE. Timings and the real-world facts shown on the end screen.
+   Check every fact with Clean Earth Rovers before the showcase.
+------------------------------------------------------------------- */
+const CONFIG = {
+  url: "https://jaime888888.github.io/harbor-sweep/",
+  level1Seconds: 40,
+  level2Seconds: 30,
+  basketSize: 10,
+  ranks: [            // [minimum total items, title, stars]
+    [0,  "Deckhand", 1],
+    [14, "Rover pilot", 2],
+    [26, "Harbor captain", 3],
+    [38, "Harbor hero", 3]
+  ],
+  facts: [
+    "Holds up to 100 pounds of floating trash before it heads back to be emptied.",
+    "Runs on batteries for up to 20 hours on one charge.",
+    "Steered by remote control or sent along a pre-planned path, just like your two levels.",
+    "About 5 feet long and 5 feet wide, small enough for tight corners of a marina."
+  ],
+  sources: [
+    ["ABC7 Los Angeles", "https://abc7.com/post/robots-removing-trash-cleaning-water-port-los-angeles/18943401/"],
+    ["Phys.org", "https://phys.org/news/2024-02-device-huntington-beach.html"],
+    ["DredgeWire", "https://dredgewire.com/huntington-beach-tries-out-ocean-cleaning-robot-in-hard-to-reach-local-waterways/"]
+  ]
+};
+
+const TYPES = [
+  {id:"bottle",  name:"Plastic bottles", one:"Bottle",  color:"#7fd3e6", w:3},
+  {id:"wrapper", name:"Snack wrappers",  one:"Wrapper", color:"#f0714f", w:3},
+  {id:"cup",     name:"Cups and lids",   one:"Cup",     color:"#f4efe1", w:2},
+  {id:"can",     name:"Cans",            one:"Can",     color:"#b9c2cf", w:1},
+  {id:"foam",    name:"Foam pieces",     one:"Foam",    color:"#e8b53a", w:2}
+];
+const TYPE_W = TYPES.reduce((a, t) => a + t.w, 0);
+
+/* ---------- small helpers ---------- */
+const $ = id => document.getElementById(id);
+const cv = $("sea"), ctx = cv.getContext("2d");
+const TAU = Math.PI * 2;
+const rnd = (a, b) => a + Math.random() * (b - a);
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const lerp = (a, b, k) => a + (b - a) * k;
+const store = {
+  get(k){ try { return localStorage.getItem(k); } catch (e) { return null; } },
+  set(k, v){ try { localStorage.setItem(k, v); } catch (e) {} }
+};
+const vibrate = ms => {
+  try { const ua = navigator.userActivation; if (navigator.vibrate && (!ua || ua.hasBeenActive)) navigator.vibrate(ms); } catch (e) {}
+};
+const mqReduce = window.matchMedia ? matchMedia("(prefers-reduced-motion: reduce)") : null;
+let reduceMotion = !!(mqReduce && mqReduce.matches);
+const C = {navy:"#101d36", gold:"#e8b53a", foam:"#f4efe1", coral:"#f0714f"};
+const FD = "'Big Shoulders Display','Arial Narrow',Impact,sans-serif";
+const FB = "'Atkinson Hyperlegible',Verdana,sans-serif";
+const GAME_URL = (/^https?:$/.test(location.protocol) && !/^(localhost|127\.|\[?::1)/.test(location.hostname))
+  ? location.origin + location.pathname : CONFIG.url;
+function seeded(seed){
+  return () => { seed = (seed + 0x6D2B79F5) | 0; let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+}
+
+/* ---------- sound: everything is synthesized, nothing to download ---------- */
+const Sound = {
+  ac:null, out:null, nb:null, on: store.get("harborSweepSound") !== "off",
+  init(){
+    if (this.ac){ this.resume(); return; }
+    const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return;
+    try { this.ac = new AC(); } catch (e) { return; }
+    const ac = this.ac;
+    this.out = ac.createGain(); this.out.gain.value = this.on ? .9 : 0;
+    const comp = ac.createDynamicsCompressor(); this.out.connect(comp); comp.connect(ac.destination);
+    const len = ac.sampleRate * 2, buf = ac.createBuffer(1, len, ac.sampleRate), d = buf.getChannelData(0);
+    for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
+    this.nb = buf;
+    // harbor ambience: slow swell of filtered noise
+    const src = ac.createBufferSource(); src.buffer = buf; src.loop = true;
+    const lp = ac.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = 380;
+    const g = ac.createGain(); g.gain.value = .045;
+    const lfo = ac.createOscillator(); lfo.frequency.value = .12; const lg = ac.createGain(); lg.gain.value = .03;
+    lfo.connect(lg); lg.connect(g.gain); src.connect(lp); lp.connect(g); g.connect(this.out);
+    src.start(); lfo.start();
+    this.resume();
+  },
+  resume(){ if (this.ac && this.ac.state === "suspended") this.ac.resume().catch(() => {}); },
+  suspend(){ if (this.ac && this.ac.state === "running") this.ac.suspend().catch(() => {}); },
+  set(on){
+    this.on = on; store.set("harborSweepSound", on ? "on" : "off");
+    if (this.out) this.out.gain.setTargetAtTime(on ? .9 : 0, this.ac.currentTime, .04);
+    for (const id of ["btnSound", "btnSound2"]){ const b = $(id); b.textContent = on ? "Sound on" : "Sound off"; b.setAttribute("aria-pressed", String(on)); }
+  },
+  tone(f, d, o = {}){
+    if (!this.ac || !this.on || this.ac.state !== "running") return;
+    const ac = this.ac, t0 = ac.currentTime + (o.at || 0);
+    const osc = ac.createOscillator(), g = ac.createGain();
+    osc.type = o.type || "sine"; osc.frequency.setValueAtTime(f, t0);
+    if (o.to) osc.frequency.exponentialRampToValueAtTime(o.to, t0 + d);
+    const v = o.vol || .15;
+    g.gain.setValueAtTime(.0001, t0); g.gain.exponentialRampToValueAtTime(v, t0 + (o.atk || .006));
+    g.gain.exponentialRampToValueAtTime(.0001, t0 + d);
+    let node = osc;
+    if (o.lp){ const f2 = ac.createBiquadFilter(); f2.type = "lowpass"; f2.frequency.value = o.lp; osc.connect(f2); node = f2; }
+    node.connect(g); g.connect(this.out); osc.start(t0); osc.stop(t0 + d + .05);
+  },
+  noise(d, o = {}){
+    if (!this.ac || !this.on || !this.nb || this.ac.state !== "running") return;
+    const ac = this.ac, t0 = ac.currentTime + (o.at || 0);
+    const s = ac.createBufferSource(); s.buffer = this.nb;
+    const f = ac.createBiquadFilter(); f.type = o.type || "bandpass"; f.frequency.value = o.f || 1000; f.Q.value = o.q || 1;
+    const g = ac.createGain(); g.gain.setValueAtTime(.0001, t0); g.gain.exponentialRampToValueAtTime(o.vol || .08, t0 + .01);
+    g.gain.exponentialRampToValueAtTime(.0001, t0 + d);
+    s.connect(f); f.connect(g); g.connect(this.out); s.start(t0, Math.random()); s.stop(t0 + d + .05);
+  },
+  scoop(k){
+    const sc = [0, 2, 4, 7, 9, 12, 14, 16, 19, 21, 24], f = 523 * Math.pow(2, sc[Math.min(k - 1, sc.length - 1)] / 12);
+    this.tone(f, .14, {type:"triangle", vol:.17, to:f * 1.5}); this.noise(.08, {f:2600, q:1.4, vol:.05});
+  },
+  escape(){ this.tone(210, .34, {vol:.2, to:70}); this.noise(.26, {f:450, q:.7, vol:.07}); },
+  alert(){ this.tone(880, .09, {type:"square", vol:.06, lp:2400}); this.tone(620, .13, {type:"square", vol:.06, lp:2400, at:.11}); },
+  full(){ [784, 659, 523].forEach((f, i) => this.tone(f, .14, {type:"triangle", vol:.13, at:i * .09})); },
+  unload(){ [523, 659, 784, 1047].forEach((f, i) => this.tone(f, .18, {type:"triangle", vol:.14, at:i * .06})); this.noise(.4, {f:900, q:.6, vol:.06}); },
+  count(go){ this.tone(go ? 1046 : 659, go ? .38 : .12, {type:"square", vol:.07, lp:3000}); },
+  horn(){ this.tone(116, .75, {type:"sawtooth", vol:.09, atk:.06, lp:700}); this.tone(174, .75, {type:"sawtooth", vol:.06, atk:.06, lp:700}); },
+  tick(){ this.tone(1500, .035, {type:"square", vol:.04, lp:4000}); },
+  bark(){ this.tone(340, .09, {type:"square", vol:.035, to:230, lp:1400}); this.tone(320, .1, {type:"square", vol:.035, to:210, lp:1400, at:.15}); },
+  go(){ this.tone(520, .08, {vol:.07}); this.tone(780, .1, {vol:.07, at:.08}); },
+  fanfare(){ [523, 659, 784, 1047, 1319].forEach((f, i) => this.tone(f, .24, {type:"triangle", vol:.13, at:i * .09})); },
+  click(){ this.tone(720, .05, {vol:.06}); }
+};
+
+/* ---------- layout ---------- */
+let W = 360, H = 640, S = 1, DPR = 1, TOP = 100, HUDH = 63, SAFEB = 0, INSET = 0, lastW = 0;
+let B = {l:0, r:0, t:0, b:0};          // where floating things live
+let MOUTH = {t:0, b:0};                 // the gap in the breakwater that leads to the ocean
+let DOCK = {y:0};
+let LAYER_BASE = null, LAYER_TOP = null, TILE = null, PAT = null;
+
+function layout(){
+  const rc = cv.getBoundingClientRect();
+  W = Math.max(280, rc.width); H = Math.max(440, rc.height);
+  DPR = Math.min(window.devicePixelRatio || 1, 2);
+  cv.width = Math.round(W * DPR); cv.height = Math.round(H * DPR);
+  S = clamp(W / 375, .85, 1.25);
+  HUDH = $("probeT").offsetHeight + 3; SAFEB = $("probeB").offsetHeight;
+  TOP = HUDH + 40 * S;
+  const dockH = INSET ? 50 * S : 74 * S + SAFEB;
+  DOCK.y = H - INSET - dockH;
+  B = {l:10 * S, r:W - 34 * S, t:TOP + 10 * S, b:DOCK.y - 12 * S};
+  const wh = B.b - B.t;
+  MOUTH = {t:B.t + wh * .30, b:B.t + wh * .72};
+  for (const t of G.trash){ t.x = clamp(t.x, B.l, B.r); t.y = clamp(t.y, B.t, B.b); }
+  const r = G.rover; r.x = clamp(r.x, B.l + 8 * S, B.r - 12 * S); r.y = clamp(r.y, B.t + 6 * S, B.b);
+  renderStatic();
+  if (G.mode === "plan"){
+    if (Math.abs(W - lastW) > 1){ clearPath(); dockRover(); }
+    computePreds();
+  }
+  lastW = W;
+}
+const drains = () => [W * .18, W * .56];
+const laneY = b => B.t + (B.b - B.t) * b.lf;
+const buoyPos = () => ({x:B.l + (B.r - B.l) * .74, y:B.t + (B.b - B.t) * .12});
+const binPos = () => ({x:W / 2, y:B.b + 2 * S});
+
+/* ---------- static scenery, drawn once per resize ---------- */
+function mkLayer(){
+  const c = document.createElement("canvas"); c.width = Math.round(W * DPR); c.height = Math.round(H * DPR);
+  const g = c.getContext("2d"); g.setTransform(DPR, 0, 0, DPR, 0, 0); return [c, g];
+}
+function renderStatic(){ renderBase(); renderTop(); makeTile(); }
+
+function renderBase(){
+  const [c, g] = mkLayer();
+  let gr = g.createLinearGradient(0, TOP, 0, H);
+  gr.addColorStop(0, "#2a9294"); gr.addColorStop(.45, "#1c7a80"); gr.addColorStop(1, "#11525c");
+  g.fillStyle = gr; g.fillRect(0, 0, W, H);
+  gr = g.createLinearGradient(B.l, 0, W, 0); gr.addColorStop(0, "rgba(9,40,62,0)"); gr.addColorStop(1, "rgba(9,40,62,.38)");
+  g.fillStyle = gr; g.fillRect(0, 0, W, H);
+  const ox = B.r + 15 * S;                                     // open ocean beyond the breakwater
+  gr = g.createLinearGradient(ox, 0, W, 0); gr.addColorStop(0, "#0e4762"); gr.addColorStop(1, "#0a3150");
+  g.fillStyle = gr; g.fillRect(B.r, TOP, W - B.r, H - TOP);
+  gr = g.createLinearGradient(0, TOP, 0, TOP + 30 * S);         // shallows along the seawall
+  gr.addColorStop(0, "rgba(170,225,205,.32)"); gr.addColorStop(1, "rgba(170,225,205,0)");
+  g.fillStyle = gr; g.fillRect(0, TOP, B.r, 30 * S);
+  for (const x of drains()){                                    // murky storm-drain plumes
+    const rg = g.createRadialGradient(x, TOP, 2, x, TOP + 18 * S, 74 * S);
+    rg.addColorStop(0, "rgba(128,104,62,.5)"); rg.addColorStop(1, "rgba(128,104,62,0)");
+    g.fillStyle = rg; g.beginPath(); g.ellipse(x, TOP + 22 * S, 50 * S, 66 * S, 0, 0, TAU); g.fill();
+  }
+  LAYER_BASE = c;
+}
+
+function rrp(g, x, y, w, h, r){
+  g.beginPath(); g.moveTo(x + r, y); g.arcTo(x + w, y, x + w, y + h, r); g.arcTo(x + w, y + h, x, y + h, r);
+  g.arcTo(x, y + h, x, y, r); g.arcTo(x, y, x + w, y, r); g.closePath();
+}
+function rock(g, x, y, s, rand){
+  const shade = 120 + Math.floor(rand() * 45);
+  g.fillStyle = "rgba(4,20,30,.35)"; g.beginPath(); g.ellipse(x + 1.5, y + 2, s, s * .75, rand() * 3, 0, TAU); g.fill();
+  g.fillStyle = `rgb(${shade},${shade - 4},${shade - 12})`; g.beginPath(); g.ellipse(x, y, s, s * .75, rand() * 3, 0, TAU); g.fill();
+  g.fillStyle = "rgba(255,255,255,.18)"; g.beginPath(); g.ellipse(x - s * .3, y - s * .25, s * .4, s * .25, 0, 0, TAU); g.fill();
+}
+function renderTop(){
+  const [c, g] = mkLayer();
+  const rand = seeded(11);
+  /* land: road, curb, promenade, seawall */
+  const roadB = TOP - 36 * S;
+  g.fillStyle = "#3a3f48"; g.fillRect(0, 0, W, roadB);
+  if (roadB > 30){
+    g.strokeStyle = "rgba(232,181,58,.75)"; g.lineWidth = 2; g.setLineDash([16, 12]);
+    g.beginPath(); g.moveTo(0, roadB * .55); g.lineTo(W, roadB * .55); g.stroke(); g.setLineDash([]);
+  }
+  g.fillStyle = "#b8b2a4"; g.fillRect(0, roadB, W, 4 * S);
+  g.fillStyle = "#d9c9a3"; g.fillRect(0, roadB + 4 * S, W, TOP - roadB - 4 * S);
+  g.strokeStyle = "rgba(120,100,60,.18)"; g.lineWidth = 1;
+  for (let x = (rand() * 20); x < W; x += 22 * S){ g.beginPath(); g.moveTo(x, roadB + 4 * S); g.lineTo(x, TOP - 8 * S); g.stroke(); }
+  g.fillStyle = "#a79d86"; g.fillRect(0, TOP - 8 * S, W, 8 * S);
+  g.fillStyle = "#8d846f"; g.fillRect(0, TOP - 2 * S, W, 2 * S);
+  /* storm drains with their stenciled warning */
+  for (const x of drains()){
+    g.fillStyle = "#2a2f38"; rrp(g, x - 11 * S, TOP - 9 * S, 22 * S, 10 * S, 3 * S); g.fill();
+    g.strokeStyle = "#5c6370"; g.lineWidth = 1.4;
+    for (let k = -7; k <= 7; k += 3.5){ g.beginPath(); g.moveTo(x + k * S, TOP - 8 * S); g.lineTo(x + k * S, TOP); g.stroke(); }
+    g.fillStyle = "rgba(16,29,54,.75)"; g.font = `700 ${Math.round(8.5 * S)}px ${FB}`; g.textAlign = "center";
+    g.fillText("DRAINS TO OCEAN", x, TOP - 13 * S);
+  }
+  /* palms and benches on the promenade */
+  const palms = [.035, .37, .74, .95];
+  for (const fx of palms){
+    const x = W * fx, y = roadB + (TOP - roadB) * .42;
+    g.fillStyle = "rgba(0,0,0,.15)"; g.beginPath(); g.ellipse(x + 6, y + 5, 13 * S, 9 * S, 0, 0, TAU); g.fill();
+    g.strokeStyle = "#2f6b3c"; g.lineWidth = 3.4 * S; g.lineCap = "round";
+    for (let k = 0; k < 8; k++){
+      const a = k / 8 * TAU + fx * 9;
+      g.beginPath(); g.moveTo(x, y);
+      g.quadraticCurveTo(x + Math.cos(a) * 8 * S, y + Math.sin(a) * 8 * S - 2, x + Math.cos(a) * 13 * S, y + Math.sin(a) * 13 * S); g.stroke();
+    }
+    g.strokeStyle = "#3f8a4e"; g.lineWidth = 1.6 * S;
+    for (let k = 0; k < 8; k++){ const a = k / 8 * TAU + fx * 9 + .2; g.beginPath(); g.moveTo(x, y); g.lineTo(x + Math.cos(a) * 9 * S, y + Math.sin(a) * 9 * S); g.stroke(); }
+    g.fillStyle = "#5a4630"; g.beginPath(); g.arc(x, y, 2.4 * S, 0, TAU); g.fill();
+  }
+  for (const fx of [.845]){
+    const x = W * fx, y = roadB + (TOP - roadB) * .45;
+    g.fillStyle = "#7b5a3a"; rrp(g, x - 11 * S, y - 3 * S, 22 * S, 6 * S, 1.5); g.fill();
+    g.fillStyle = "rgba(0,0,0,.18)"; g.fillRect(x - 11 * S, y + 3 * S, 22 * S, 1.5 * S);
+  }
+  /* soft shadow the seawall throws on the water */
+  let gr = g.createLinearGradient(0, TOP, 0, TOP + 9 * S); gr.addColorStop(0, "rgba(4,20,30,.28)"); gr.addColorStop(1, "rgba(4,20,30,0)");
+  g.fillStyle = gr; g.fillRect(0, TOP, B.r + 15 * S, 9 * S);
+  /* riprap along the seawall */
+  for (let x = 4; x < B.r + 10 * S; x += 9 * S + rand() * 8 * S){
+    if (drains().some(d => Math.abs(d - x) < 15 * S)) continue;
+    rock(g, x, TOP + 1.5 * S, (3.5 + rand() * 3) * S, rand);
+  }
+  /* breakwater on the right, with the harbor mouth left open */
+  const bx0 = B.r + 1, bx1 = B.r + 15 * S;
+  const segs = [[TOP, MOUTH.t - 2 * S], [MOUTH.b + 2 * S, H]];
+  for (const [y0, y1] of segs){
+    g.fillStyle = "#6f6a60"; g.fillRect(bx0 + 3 * S, y0, bx1 - bx0 - 6 * S, y1 - y0);
+    for (let y = y0 + 3; y < y1; y += 6.5 * S){
+      for (let x = bx0 + 3 * S; x < bx1; x += 6.5 * S) rock(g, x + rand() * 3, y + rand() * 3, (3.4 + rand() * 2.2) * S, rand);
+    }
+  }
+  /* channel marker posts at each side of the mouth (lights drawn live) */
+  for (const y of [MOUTH.t - 4 * S, MOUTH.b + 4 * S]){
+    g.fillStyle = "#1b1f27"; g.beginPath(); g.arc((bx0 + bx1) / 2, y, 4.5 * S, 0, TAU); g.fill();
+  }
+  /* ocean label */
+  g.save(); g.translate((bx1 + W) / 2 + 1, (MOUTH.t + MOUTH.b) / 2); g.rotate(-Math.PI / 2);
+  g.fillStyle = "rgba(244,239,225,.65)"; g.font = `700 ${Math.round(9.5 * S)}px ${FB}`; g.textAlign = "center"; g.textBaseline = "middle";
+  g.fillText("OPEN OCEAN", 0, 0); g.restore();
+  /* dock */
+  const y0 = DOCK.y;
+  gr = g.createLinearGradient(0, y0 - 10 * S, 0, y0); gr.addColorStop(0, "rgba(4,20,30,0)"); gr.addColorStop(1, "rgba(4,20,30,.3)");
+  g.fillStyle = gr; g.fillRect(0, y0 - 10 * S, B.r + 1, 10 * S);
+  g.fillStyle = "#8a6a45"; g.fillRect(0, y0, W, H - y0);
+  g.strokeStyle = "rgba(40,26,12,.35)"; g.lineWidth = 1;
+  for (let x = 0; x < W; x += 20 * S){ g.beginPath(); g.moveTo(x, y0); g.lineTo(x, H); g.stroke(); }
+  g.fillStyle = "rgba(40,26,12,.4)";
+  for (let x = 10 * S; x < W; x += 20 * S) for (let y = y0 + 12 * S; y < H; y += 26 * S){ g.fillRect(x - 3 * S, y, 1.4, 1.4); g.fillRect(x + 3 * S, y, 1.4, 1.4); }
+  g.fillStyle = "#6f5436"; g.fillRect(0, y0, W, 6 * S);
+  for (let x = 14 * S; x < W; x += 52 * S){                     // pilings
+    if (Math.abs(x - W / 2) < 44 * S) continue;
+    g.fillStyle = "#4a3824"; g.beginPath(); g.arc(x, y0 + 2 * S, 5 * S, 0, TAU); g.fill();
+    g.fillStyle = "#5e4830"; g.beginPath(); g.arc(x - 1, y0 + 1 * S, 3 * S, 0, TAU); g.fill();
+  }
+  /* catch bin */
+  const bw = 64 * S, bh = 24 * S, bxx = W / 2 - bw / 2, byy = y0 + 12 * S;
+  g.fillStyle = "rgba(0,0,0,.25)"; rrp(g, bxx + 2, byy + 3, bw, bh, 4); g.fill();
+  g.fillStyle = C.navy; rrp(g, bxx, byy, bw, bh, 4); g.fill();
+  g.fillStyle = C.gold; g.fillRect(bxx, byy, bw, 4 * S);
+  g.fillStyle = C.foam; g.font = `900 ${Math.round(12 * S)}px ${FD}`; g.textAlign = "center"; g.textBaseline = "middle";
+  g.fillText("CATCH BIN", W / 2, byy + bh / 2 + 2 * S);
+  /* rover slip: lighter boards where the rover parks */
+  g.fillStyle = "rgba(244,239,225,.12)"; g.fillRect(W / 2 - 28 * S, y0, 56 * S, 6 * S);
+  LAYER_TOP = c;
+}
+
+function makeTile(){
+  const T = 150, c = document.createElement("canvas"); c.width = c.height = Math.round(T * DPR);
+  const g = c.getContext("2d"); g.scale(DPR, DPR);
+  g.strokeStyle = "#fff"; g.lineWidth = 1.4; g.lineCap = "round";
+  const rand = seeded(7);
+  for (let i = 0; i < 20; i++){
+    const x = rand() * T, y = rand() * T, len = 8 + rand() * 14;
+    for (const ox of [-T, 0, T]) for (const oy of [-T, 0, T]){
+      g.beginPath(); g.moveTo(x + ox, y + oy); g.quadraticCurveTo(x + ox + len / 2, y + oy - 3, x + ox + len, y + oy); g.stroke();
+    }
+  }
+  TILE = {c, T:Math.round(T * DPR)}; PAT = ctx.createPattern(c, "repeat");
+}
+
+/* ---------- game state ---------- */
+const newStats = () => ({types:{}, n:0, escaped:0, stops:0, streak:0, best:0, last:-9, unloads:0});
+const G = {
+  mode:"title", paused:false, t:0, timeLeft:0, total:1, countT:0, goT:0, shake:0, mouthFlash:0,
+  rover:{x:0, y:0, h:-Math.PI / 2, vx:0, vy:0, stall:0, immune:0, wait:false, scoop:0, load:[], wakeT:0},
+  trash:[], boats:[], lion:{state:"down", t:3, x:0, y:0, a:0}, parts:[], pops:[], gulls:[], gullT:4, barkT:7,
+  stats:{l1:newStats(), l2:newStats()},
+  path:[], cum:[], strokes:[], pathLen:0, budget:0, prog:0, speed2:80, drawing:false, doneT:0, preds:[], batteryNag:false, routeDone:false,
+  joy:null, keys:{}, best:0, spawnT:1, drainIdx:0, fullNag:0, lastClock:""
+};
+const lk = () => (G.mode === "plan" || G.mode === "run2" ? "l2" : "l1");
+const ACTIVE = new Set(["count1", "play1", "plan", "run2"]);
+
+/* ---------- the current: everything drifts toward the harbor mouth ---------- */
+function flow(x, y){
+  const my = (MOUTH.t + MOUTH.b) / 2, mx = B.r + 30 * S;
+  const dx = mx - x, dy = my - y, d = Math.hypot(dx, dy) || 1;
+  const sw = Math.sin(x * .021 / S + 1.3) * Math.cos(y * .017 / S) * .45;
+  let fx = dx / d + .25, fy = dy / d + sw;
+  const fl = Math.hypot(fx, fy) || 1; fx /= fl; fy /= fl;
+  const near = Math.max(0, 1 - (B.r - x) / (90 * S));
+  const k = 1 + near * near * 2.4 * (y > MOUTH.t && y < MOUTH.b ? 1 : .35);
+  return [fx * k, fy * k];
+}
+const curSpeed = lvl => (lvl === 2 ? 7 : 9.5) * S;
+
+/* ---------- world setup ---------- */
+function pickType(){ let r = Math.random() * TYPE_W; for (const t of TYPES){ r -= t.w; if (r < 0) return t; } return TYPES[0]; }
+function mkTrash(x, y, vx, vy, fresh){
+  return {type:pickType(), x, y, vx, vy, rot:rnd(0, TAU), vr:rnd(-.5, .5), ph:rnd(0, TAU), wa:rnd(0, TAU), got:0, esc:0, born:fresh ? 0 : 1};
+}
+function placeTrash(){
+  let x = 0, y = 0, ok = false, n = 0; const bp = buoyPos(), r = G.rover;
+  do {
+    x = rnd(B.l + 12 * S, B.r - 14 * S); y = rnd(B.t + 10 * S, B.b - 50 * S); n++;
+    ok = Math.hypot(x - r.x, y - r.y) > 80 * S && Math.hypot(x - bp.x, y - bp.y) > 30 * S &&
+         !(x > B.r - 80 * S && y > MOUTH.t - 10 * S && y < MOUTH.b + 10 * S) &&
+         G.trash.every(t => Math.hypot(t.x - x, t.y - y) > 30 * S);
+  } while (!ok && n < 50);
+  return mkTrash(x, y, 0, 0, false);
+}
+function setupWorld(n){
+  G.trash = []; G.parts = []; G.pops = [];
+  for (let i = 0; i < n; i++) G.trash.push(placeTrash());
+  G.boats = [
+    {name:"sailboat", kind:"sail", lf:.41, dir:1, sp:28, x:-40 * S, wt:0},
+    {name:"fishing boat", kind:"motor", lf:.62, dir:-1, sp:21, x:W * .78, wt:0}
+  ];
+  G.lion = {state:"down", t:3, x:0, y:0, a:0};
+  G.spawnT = 1.2;
+}
+function dockRover(){
+  const r = G.rover;
+  r.x = W / 2; r.y = B.b; r.h = -Math.PI / 2; r.vx = r.vy = 0; r.stall = 0; r.immune = 0; r.wait = false; r.load = [];
+}
+function spawnFromDrain(){
+  const dx = drains()[G.drainIdx++ % 2];
+  const t = mkTrash(dx + rnd(-4, 4) * S, B.t + 2 * S, rnd(-10, 10) * S, rnd(26, 38) * S, true);
+  G.trash.push(t);
+  for (let i = 0; i < 6; i++) addP({k:"drop", x:t.x, y:t.y, vx:rnd(-34, 34) * S, vy:rnd(0, 44) * S, t:0, life:.5, s:rnd(1.4, 2.6) * S, col:"203,185,143"});
+  addP({k:"ring", x:t.x, y:t.y + 4 * S, vx:0, vy:0, t:0, life:.8, s:4 * S, col:"244,239,225"});
+}
+function spawnTick(dt, ambient){
+  G.spawnT -= dt; if (G.spawnT > 0) return;
+  const alive = G.trash.reduce((a, t) => a + (!t.got && !t.esc ? 1 : 0), 0);
+  G.spawnT = ambient ? rnd(2.4, 3.6) : rnd(1.5, 2.2);
+  if (alive < (ambient ? 14 : 22)) spawnFromDrain();
+  if (!ambient && alive < 7) G.spawnT = .5;
+}
+
+/* ---------- flow between screens ---------- */
+const CARDS = ["c-title", "c-brief1", "c-result1", "c-end", "c-pause", "c-qr"];
+let qrReturn = null;
+function show(id){
+  for (const c of CARDS) $(c).hidden = c !== id;
+  if (id){ const b = $(id).querySelector("button:not(.ghost):not(.linkish)"); if (b && matchMedia("(pointer:fine)").matches) try { b.focus({preventScroll:true}); } catch (e) {} }
+}
+function setHud(name){ $("hud").hidden = false; $("lvlName").textContent = name; }
+function fmt(s){ s = Math.max(0, Math.ceil(s)); return Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0"); }
+function setClock(frac, text, low){
+  $("meterFill").style.transform = "scaleX(" + clamp(frac, 0, 1) + ")";
+  if (text !== G.lastClock){
+    G.lastClock = text; $("clock").textContent = text;
+    $("clock").classList.toggle("low", !!low); $("meterFill").classList.toggle("low", !!low);
+  }
+}
+function setCount(n){ const b = $("count"); b.textContent = n; b.classList.remove("bump"); void b.offsetWidth; b.classList.add("bump"); }
+
+function toTitle(){
+  G.mode = "title"; $("hud").hidden = true; $("planbar").hidden = true; INSET = 0; layout(); dockRover(); setupWorld(12);
+  $("bestLine").textContent = G.best ? "Your best: " + G.best + " pieces. " : "";
+  show("c-title");
+}
+function toBrief1(){
+  G.stats = {l1:newStats(), l2:newStats()};
+  G.mode = "brief1"; G.paused = false; $("hud").hidden = true; $("planbar").hidden = true;
+  INSET = 0; layout(); dockRover(); setupWorld(10);
+  for (let i = 0; i < 2; i++){                 // two pieces already heading out the mouth: an early rescue
+    G.trash.push(mkTrash(B.r - rnd(90, 130) * S, lerp(MOUTH.t, MOUTH.b, .3 + i * .4) + rnd(-10, 10) * S, 0, 0, false));
+  }
+  $("l1secs").textContent = CONFIG.level1Seconds; $("basketN").textContent = CONFIG.basketSize;
+  show("c-brief1");
+}
+function startCountdown(){
+  G.mode = "count1"; G.countT = 3; G.joy = null; G.keys = {};
+  setHud("Level 1 · Remote control"); $("count").textContent = "0";
+  G.timeLeft = G.total = CONFIG.level1Seconds; G.lastClock = ""; setClock(1, fmt(G.total));
+  show(null); Sound.count(false);
+}
+function beginPlay1(){
+  G.mode = "play1"; G.goT = .8; Sound.count(true);
+  toast("Drag anywhere to steer", 2000, true);
+}
+function endLevel1(){
+  G.mode = "result1"; G.joy = null; G.rover.vx = G.rover.vy = 0; G.rover.stall = 0;
+  const st = G.stats.l1;
+  $("r1n").textContent = st.n + (st.n === 1 ? " piece" : " pieces");
+  const bits = [];
+  bits.push(st.escaped ? st.escaped + (st.escaped === 1 ? " piece" : " pieces") + " slipped out to the ocean." : "Nothing slipped out to the ocean.");
+  if (st.best >= 3) bits.push("Best streak: " + st.best + " in a row.");
+  if (st.unloads) bits.push("You emptied the basket " + (st.unloads === 1 ? "once." : st.unloads + " times."));
+  $("r1detail").textContent = bits.join(" ");
+  $("hud").hidden = true; Sound.fanfare();
+  show("c-result1");
+}
+function startPlan(){
+  G.mode = "plan"; show(null);
+  $("planHint").textContent = "Drag a route from the rover, or tap to drop waypoints. Match the numbers on your route to the dots on each trail.";
+  $("planbar").hidden = false;
+  INSET = $("planbar").offsetHeight; layout(); dockRover(); setupWorld(16);
+  G.lion.state = "down"; G.lion.t = rnd(3, 5);
+  clearPath(); G.prog = 0; G.doneT = 0; G.routeDone = false;
+  G.speed2 = 80 * S; G.budget = G.speed2 * (CONFIG.level2Seconds - 5); G.lastStop = ""; G.lastStopT = -9;
+  computePreds();
+  setHud("Level 2 · Plan your route"); $("count").textContent = "0"; G.lastClock = ""; setClock(1, "100%");
+}
+function launch(){
+  if (G.mode !== "plan" || G.pathLen < 60) return;
+  G.mode = "run2"; G.timeLeft = G.total = CONFIG.level2Seconds; G.prog = 0; G.drawing = false; G.lastClock = "";
+  $("planHint").textContent = "Hands off. The rover is driving your route and watching for boats and sea lions.";
+  updatePlanButtons(); setHud("Level 2 · Autopilot");
+  Sound.horn(); toast("Autopilot engaged", 1600, true);
+}
+function endGame(){
+  G.mode = "end"; G.joy = null;
+  const s1 = G.stats.l1, s2 = G.stats.l2;
+  const l1 = s1.n, l2 = s2.n, tot = l1 + l2, stops = s1.stops + s2.stops, esc = s1.escaped + s2.escaped;
+  const rate = tot + esc ? tot / (tot + esc) : 0;
+  let rk = CONFIG.ranks[0]; for (const r of CONFIG.ranks) if (tot >= r[0]) rk = r;
+  $("rankName").textContent = rk[1];
+  const star = '<svg viewBox="0 0 24 24"><path class="CL" d="M12 1.8l3.1 6.6 7.2.9-5.3 5 1.4 7.1L12 17.9l-6.4 3.5 1.4-7.1-5.3-5 7.2-.9z"/></svg>';
+  $("stars").innerHTML = [0, 1, 2].map(i => star.replace("CL", i < rk[2] ? "on" : "off")).join("");
+  $("stars").setAttribute("aria-label", rk[2] + " of 3 stars");
+  const isBest = tot > 0 && tot > G.best;
+  $("newBest").hidden = !isBest;
+  if (isBest){ G.best = tot; store.set("harborSweepBest", String(tot)); }
+  countUp($("endTotal"), tot); countUp($("endL1"), l1); countUp($("endL2"), l2); countUp($("endStops"), stops);
+  const pct = Math.round(rate * 100);
+  $("ringText").textContent = pct + "%";
+  const ring = $("ringFill"); ring.style.transition = "none"; ring.style.strokeDashoffset = "201.06";
+  void ring.getBoundingClientRect(); ring.style.transition = ""; requestAnimationFrame(() => { ring.style.strokeDashoffset = String(201.06 * (1 - rate)); });
+  $("captureText").textContent = (tot + esc === 0) ? "No trash caught or lost this time. Give it another sweep."
+    : "You kept " + pct + "% of the trash from reaching the ocean. " + (esc ? esc + (esc === 1 ? " piece" : " pieces") + " slipped out the harbor mouth." : "Not a single piece got away.");
+  let ins = l2 > l1 ? "Autopilot beat your steering. One good route lets a rover sweep a marina with nobody at the controls."
+    : l1 > l2 ? "Your steering beat the autopilot. Trash keeps drifting, so operators take over when a planned route misses."
+    : "A tie between you and the autopilot. Real crews use both: planned sweeps for coverage, remote control for the tricky spots.";
+  if (stops) ins += " The rover made " + stops + " safety stop" + (stops === 1 ? "" : "s") + " for boats and wildlife.";
+  $("endInsight").textContent = ins;
+  const tc = t => (s1.types[t.id] || 0) + (s2.types[t.id] || 0);
+  const max = Math.max(1, ...TYPES.map(tc));
+  $("endBars").innerHTML = TYPES.map((t, i) => '<div class="bar"><span>' + t.name + '</span><div class="track"><div class="fill" style="width:' +
+    Math.round(tc(t) / max * 100) + '%;background:' + t.color + ';animation-delay:' + (.2 + i * .08) + 's"></div></div><span class="n">' + tc(t) + '</span></div>').join("");
+  $("endFacts").innerHTML = CONFIG.facts.map(f => "<li>" + f + "</li>").join("");
+  $("endSources").innerHTML = "Rover facts from " + CONFIG.sources.map(s =>
+    '<a href="' + s[1] + '" target="_blank" rel="noopener">' + s[0] + "</a>").join(", ") + ". Game scores are not real cleanup data.";
+  G.lastShare = tot;
+  $("hud").hidden = true; $("planbar").hidden = true; INSET = 0; layout();
+  G.rover.wait = false; G.rover.load = []; if (G.trash.length < 8) for (let i = 0; i < 6; i++) G.trash.push(placeTrash());
+  Sound.fanfare(); show("c-end"); $("c-end").scrollTop = 0;
+}
+function countUp(el, n){
+  if (reduceMotion || n === 0){ el.textContent = n; return; }
+  const t0 = performance.now(), d = 900;
+  const step = now => { const k = Math.min(1, (now - t0) / d); el.textContent = Math.round(n * (1 - Math.pow(1 - k, 3))); if (k < 1) requestAnimationFrame(step); };
+  requestAnimationFrame(step);
+}
+
+function pause(){
+  if (!ACTIVE.has(G.mode) || G.paused) return;
+  G.paused = true; G.joy = null; G.keys = {}; G.drawing = false; show("c-pause");
+}
+function resume(){ if (!G.paused) return; G.paused = false; show(null); Sound.resume(); }
+function openQR(){ qrReturn = CARDS.find(c => !$(c).hidden) || null; show("c-qr"); }
+function closeQR(){ show(qrReturn && qrReturn !== "c-qr" ? qrReturn : null); }
+async function share(){
+  const n = G.lastShare || 0;
+  const text = n ? "I pulled " + n + " pieces of trash out of the harbor in Harbor Sweep. Can you beat it?" : "Pilot a trash-collecting harbor rover in Harbor Sweep.";
+  if (navigator.share){
+    try { await navigator.share({title:"Harbor Sweep", text, url:GAME_URL}); return; }
+    catch (e) { if (e && e.name === "AbortError") return; }
+  }
+  try { await navigator.clipboard.writeText(text + " " + GAME_URL); toast("Link copied. Paste it anywhere.", 2000, true); }
+  catch (e) { openQR(); }
+}
+
+let toastTimer = 0;
+function toast(msg, ms, good){
+  $("toastText").textContent = msg; const el = $("toast");
+  el.classList.toggle("good", !!good); el.classList.add("on");
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => el.classList.remove("on"), ms || 1800);
+}
+function pop(text, x, y, col, big){ G.pops.push({text, x, y, col:col || C.gold, t:0, big:!!big}); }
+function addP(p){ if (G.parts.length < 320) G.parts.push(p); }
+
+/* ---------- obstacles ---------- */
+function obstacleNear(px, py, pad, withBuoy, withWarn){
+  for (const b of G.boats){
+    const by = laneY(b), dx = (px - b.x) / (34 * S + pad), dy = (py - by) / (13 * S + pad);
+    if (dx * dx + dy * dy < 1) return {kind:"boat", name:b.name, x:b.x, y:by};
+  }
+  const L = G.lion;
+  if ((L.state === "up" || (withWarn && L.state === "warn")) && Math.hypot(px - L.x, py - L.y) < 12 * S + pad)
+    return {kind:"lion", name:"sea lion", x:L.x, y:L.y};
+  if (withBuoy){ const p = buoyPos(); if (Math.hypot(px - p.x, py - p.y) < 14 * S + pad) return {kind:"buoy", name:"buoy", x:p.x, y:p.y}; }
+  return null;
+}
+function updateObstacles(dt){
+  for (const b of G.boats){
+    b.x += b.dir * b.sp * S * dt;
+    if (b.dir > 0 && b.x > W + 90 * S) b.x = -90 * S - rnd(0, 140) * S;
+    if (b.dir < 0 && b.x < -90 * S) b.x = W + 90 * S + rnd(0, 140) * S;
+    b.wt -= dt;
+    if (b.wt <= 0 && b.x > -40 && b.x < W + 40){
+      b.wt = .07; const sy = laneY(b), sx = b.x - b.dir * 28 * S;
+      for (const s of [-1, 1]) addP({k:"wake", x:sx, y:sy + s * 7 * S, vx:-b.dir * 6 * S, vy:s * 14 * S, t:0, life:1.4, s:2 * S});
+    }
+  }
+  const L = G.lion; L.t -= dt;
+  if (L.t <= 0){
+    if (L.state === "down"){
+      let n = 0; const r = G.rover, bp = buoyPos();
+      do { L.x = rnd(B.l + 30 * S, B.r - 40 * S); L.y = rnd(B.t + 30 * S, B.b - 70 * S); n++; }
+      while (n < 30 && (Math.hypot(L.x - r.x, L.y - r.y) < 100 * S || Math.hypot(L.x - bp.x, L.y - bp.y) < 60 * S));
+      L.state = "warn"; L.t = 1.2; L.a = rnd(-.8, .8);
+    } else if (L.state === "warn"){
+      L.state = "up"; L.t = 2.6;
+      addP({k:"ring", x:L.x, y:L.y, vx:0, vy:0, t:0, life:.9, s:8 * S, col:"244,239,225"});
+      if (Math.random() < .5){ pop("ARF!", L.x, L.y - 18 * S, C.foam); if (ACTIVE.has(G.mode)) Sound.bark(); }
+    } else { L.state = "down"; L.t = rnd(2, 3.5); }
+  }
+  G.barkT -= dt;
+  if (G.barkT <= 0){ G.barkT = rnd(7, 12); const p = buoyPos(); pop("ARF!", p.x, p.y - 22 * S, C.foam); if (ACTIVE.has(G.mode)) Sound.bark(); }
+}
+
+/* ---------- rover ---------- */
+function turnTo(h, a, k){
+  let d = a - h; while (d > Math.PI) d -= TAU; while (d < -Math.PI) d += TAU;
+  return h + d * Math.min(1, k);
+}
+function moveRover(dt){
+  const r = G.rover;
+  r.x = clamp(r.x + r.vx * dt, B.l + 8 * S, B.r - 12 * S); r.y = clamp(r.y + r.vy * dt, B.t + 6 * S, B.b);
+  const sp = Math.hypot(r.vx, r.vy);
+  if (sp > 10) r.h = turnTo(r.h, Math.atan2(r.vy, r.vx), dt * 9);
+  roverWake(dt, sp);
+}
+function roverWake(dt, sp){
+  const r = G.rover; r.wakeT -= dt;
+  if (sp > 20 && r.wakeT <= 0){
+    r.wakeT = .05; const hx = Math.cos(r.h), hy = Math.sin(r.h), k = 1.15 * S;
+    for (const s of [-1, 1]){
+      const px = r.x - hx * 22 * k - hy * s * 12.5 * k, py = r.y - hy * 22 * k + hx * s * 12.5 * k;
+      addP({k:"wake", x:px, y:py, vx:-hy * s * 10 * S - hx * 8 * S, vy:hx * s * 10 * S - hy * 8 * S, t:0, life:1.1, s:1.8 * S});
+    }
+  }
+}
+function controlRover(dt){
+  const r = G.rover; let tx = 0, ty = 0;
+  if (G.joy){
+    const dx = G.joy.x - G.joy.ox, dy = G.joy.y - G.joy.oy, d = Math.hypot(dx, dy), m = 46;
+    if (d > 5){ const k = Math.min(1, d / m); tx = dx / d * k; ty = dy / d * k; }
+  }
+  const K = G.keys;
+  if (K.ArrowLeft || K.a || K.A) tx -= 1; if (K.ArrowRight || K.d || K.D) tx += 1;
+  if (K.ArrowUp || K.w || K.W) ty -= 1; if (K.ArrowDown || K.s || K.S) ty += 1;
+  const tl = Math.hypot(tx, ty); if (tl > 1){ tx /= tl; ty /= tl; }
+  if (r.stall > 0){ r.stall -= dt; tx = ty = 0; }
+  r.immune = Math.max(0, r.immune - dt);
+  const max = 150 * S, a = Math.min(1, dt * (r.stall > 0 ? 2.5 : 5));
+  r.vx += (tx * max - r.vx) * a; r.vy += (ty * max - r.vy) * a;
+  moveRover(dt);
+  if (!r.immune){ const hit = obstacleNear(r.x, r.y, 13 * S, true, false); if (hit) safetyStop(hit); }
+  if (Math.hypot(r.vx, r.vy) > 12) tryCollect(19 * S, true);
+}
+const STOP_MSG = {
+  boat: n => "Too close to a " + n + ". Rovers always give boats room.",
+  lion: () => "A sea lion surfaced. The rover stops for wildlife.",
+  buoy: () => "That buoy is a sea lion's nap spot. Steer around it."
+};
+function safetyStop(hit){
+  const r = G.rover;
+  r.stall = 1.0; r.immune = 2.2;
+  const dx = r.x - hit.x, dy = r.y - hit.y, d = Math.hypot(dx, dy) || 1;
+  r.vx = dx / d * 90 * S; r.vy = dy / d * 90 * S;
+  G.stats.l1.stops++; G.stats.l1.streak = 0;
+  toast(STOP_MSG[hit.kind](hit.name), 2200);
+  pop("SAFETY STOP", r.x, r.y - 30 * S, C.coral, true);
+  Sound.alert(); vibrate(60); if (!reduceMotion) G.shake = .3;
+}
+function tryCollect(reach, counted){
+  const r = G.rover, hx = Math.cos(r.h), hy = Math.sin(r.h);
+  const mx = r.x + hx * 14 * S, my = r.y + hy * 14 * S;
+  const full = counted && G.mode === "play1" && r.load.length >= CONFIG.basketSize;
+  for (const t of G.trash){
+    if (t.got || t.esc || t.born < .5) continue;
+    const dx = t.x - mx, dy = t.y - my;
+    if (dx * dx + dy * dy > reach * reach) continue;
+    if ((t.x - r.x) * hx + (t.y - r.y) * hy < 4 * S) continue;
+    if (full){
+      if (G.t - G.fullNag > 3){ G.fullNag = G.t; toast("Basket full. Empty it at the catch bin on the dock.", 2400); Sound.full(); }
+      return;
+    }
+    collect(t, counted);
+  }
+}
+function collect(t, counted){
+  const r = G.rover;
+  t.got = .001; r.load.push(t.type.color); r.scoop = 1;
+  for (let i = 0; i < 7; i++){ const a = rnd(0, TAU), sp = rnd(20, 60) * S; addP({k:"drop", x:t.x, y:t.y, vx:Math.cos(a) * sp, vy:Math.sin(a) * sp, t:0, life:.45, s:rnd(1.5, 2.6) * S, col:"244,239,225"}); }
+  addP({k:"ring", x:t.x, y:t.y, vx:0, vy:0, t:0, life:.6, s:6 * S, col:"232,181,58"});
+  if (!counted) return;
+  const st = G.stats[lk()];
+  st.types[t.type.id] = (st.types[t.type.id] || 0) + 1; st.n++;
+  st.streak = (G.t - st.last < 1.8) ? st.streak + 1 : 1; st.last = G.t; st.best = Math.max(st.best, st.streak);
+  setCount(st.n);
+  pop(st.streak >= 3 ? "STREAK ×" + st.streak : "+1 " + t.type.one, t.x, t.y - 12 * S, C.gold, st.streak >= 3);
+  Sound.scoop(st.streak); vibrate(12);
+  if (G.mode === "play1" && r.load.length === CONFIG.basketSize){
+    G.fullNag = G.t; toast("Basket full. Drive to the catch bin on the dock to empty it.", 2600); Sound.full();
+  }
+}
+function nearBin(){ const r = G.rover, b = binPos(); return Math.abs(r.x - b.x) < 40 * S && r.y > B.b - 24 * S; }
+function unload(counted){
+  const r = G.rover, n = r.load.length, b = binPos();
+  r.load.forEach((col, i) => addP({k:"fly", x:r.x, y:r.y, x1:b.x + rnd(-18, 18) * S, y1:DOCK.y + 22 * S, t:-i * .05, life:.55, col, vx:0, vy:0}));
+  r.load = [];
+  if (!counted) return;
+  G.stats.l1.unloads++; G.fullNag = -9;
+  pop("EMPTIED " + n, b.x, B.b - 36 * S, C.gold, true); Sound.unload(); vibrate(20);
+}
+function demoDrive(dt){
+  const r = G.rover; let tx = 0, ty = 0, goal = null;
+  if (r.load.length >= CONFIG.basketSize) goal = binPos();
+  else {
+    let bd = 1e9;
+    for (const t of G.trash){ if (t.got || t.esc || t.born < .6) continue; const d = Math.hypot(t.x - r.x, t.y - r.y); if (d < bd){ bd = d; goal = t; } }
+  }
+  if (goal){ const dx = goal.x - r.x, dy = goal.y - r.y, d = Math.hypot(dx, dy) || 1; tx = dx / d; ty = dy / d; }
+  if (obstacleNear(r.x + tx * 40 * S, r.y + ty * 40 * S, 14 * S, true, true)){ const o = tx; tx = -ty; ty = o; }
+  const max = 90 * S, a = Math.min(1, dt * 3);
+  r.vx += (tx * max - r.vx) * a; r.vy += (ty * max - r.vy) * a;
+  moveRover(dt);
+  if (Math.hypot(r.vx, r.vy) > 12) tryCollect(19 * S, false);
+  if (r.load.length && nearBin()) unload(false);
+}
+
+/* ---------- trash ---------- */
+function updateTrash(dt, lvl){
+  const r = G.rover, cur = curSpeed(lvl), bp = buoyPos(), dec = Math.exp(-dt * 1.6), pushR = 17 * S, buoyR = 16 * S;
+  for (let i = G.trash.length - 1; i >= 0; i--){
+    const t = G.trash[i];
+    if (t.got){
+      t.got += dt * 4; const k = Math.min(1, dt * 12); t.x += (r.x - t.x) * k; t.y += (r.y - t.y) * k;
+      if (t.got >= 1) G.trash.splice(i, 1);
+      continue;
+    }
+    if (t.esc){ t.esc += dt * .7; t.x += 34 * S * dt; t.rot += dt; if (t.esc >= 1) G.trash.splice(i, 1); continue; }
+    t.born = Math.min(1, t.born + dt * 1.5); t.rot += t.vr * dt;
+    const f = flow(t.x, t.y);
+    let vx = f[0] * cur + t.vx, vy = f[1] * cur + t.vy;
+    if (lvl !== 2){ t.wa += rnd(-1.5, 1.5) * dt; vx += Math.cos(t.wa) * 3 * S; vy += Math.sin(t.wa) * 3 * S; }
+    t.vx *= dec; t.vy *= dec;
+    t.x += vx * dt; t.y += vy * dt;
+    const dx = t.x - r.x, dy = t.y - r.y, d = Math.hypot(dx, dy);
+    if (d < pushR && d > .01){ t.x = r.x + dx / d * pushR; t.y = r.y + dy / d * pushR; }
+    const bx = t.x - bp.x, by = t.y - bp.y, bd = Math.hypot(bx, by);
+    if (bd < buoyR && bd > .01){ t.x = bp.x + bx / bd * buoyR; t.y = bp.y + by / bd * buoyR; }
+    if (t.x < B.l){ t.x = B.l; t.vx = Math.abs(t.vx); }
+    if (t.y < B.t){ t.y = B.t; t.vy = Math.abs(t.vy) * .5; }
+    if (t.y > B.b - 2){ t.y = B.b - 2; t.vy = -Math.abs(t.vy) * .5; }
+    if (t.x > B.r){
+      if (t.y > MOUTH.t + 5 * S && t.y < MOUTH.b - 5 * S){ t.esc = .001; if (lvl) escaped(t); }
+      else t.x = B.r;
+    }
+  }
+}
+function escaped(t){
+  const st = G.stats[lk()]; st.escaped++;
+  G.mouthFlash = 1; pop("ESCAPED", B.r - 30 * S, t.y - 8 * S, C.coral);
+  Sound.escape();
+}
+
+/* ---------- route planning ---------- */
+function clearPath(){ G.path = []; G.cum = []; G.strokes = []; G.pathLen = 0; G.batteryNag = false; updatePlanButtons(); }
+function keepOut(x, y){
+  const p = buoyPos(), K = 30 * S, dx = x - p.x, dy = y - p.y, d = Math.hypot(dx, dy);
+  if (d >= K) return [x, y];
+  if (d < .01) return [p.x + K, p.y];
+  return [p.x + dx / d * K, p.y + dy / d * K];
+}
+function addPathPoint(p){
+  if (!G.path.length){ G.path.push({x:G.rover.x, y:G.rover.y}); G.cum = [0]; G.pathLen = 0; }
+  const last = G.path[G.path.length - 1];
+  const x = clamp(p.x, B.l + 6 * S, B.r - 12 * S), y = clamp(p.y, B.t + 6 * S, B.b);
+  const dist = Math.hypot(x - last.x, y - last.y);
+  if (dist < 6) return;
+  const n = Math.ceil(dist / 10); let px = last.x, py = last.y;
+  for (let i = 1; i <= n; i++){
+    let [qx, qy] = keepOut(last.x + (x - last.x) * i / n, last.y + (y - last.y) * i / n);
+    let d = Math.hypot(qx - px, qy - py);
+    if (d < .5) continue;
+    const left = G.budget - G.pathLen;
+    if (left <= 1){ outOfBattery(); break; }
+    let stop = false;
+    if (d > left){ const f = left / d; qx = px + (qx - px) * f; qy = py + (qy - py) * f; d = left; stop = true; }
+    G.path.push({x:qx, y:qy}); G.pathLen += d; G.cum.push(G.pathLen); px = qx; py = qy;
+    if (stop){ outOfBattery(); break; }
+  }
+  updatePlanButtons();
+}
+function outOfBattery(){
+  G.drawing = false;
+  if (!G.batteryNag){ G.batteryNag = true; toast("That is all the route the battery allows. Launch when ready.", 2200); Sound.full(); }
+}
+function undo(){
+  if (G.mode !== "plan" || !G.strokes.length) return;
+  const s = G.strokes.pop(); G.path.length = s; G.cum.length = s;
+  if (G.path.length <= 1){ G.path = []; G.cum = []; G.strokes = []; }
+  G.pathLen = G.cum.length ? G.cum[G.cum.length - 1] : 0; G.batteryNag = false;
+  updatePlanButtons();
+}
+function updatePlanButtons(){
+  const planning = G.mode === "plan";
+  $("btnLaunch").disabled = !planning || G.pathLen < 60;
+  $("btnUndo").disabled = !planning || !G.strokes.length;
+  $("btnClear").disabled = !planning || !G.path.length;
+}
+function pathAt(d){
+  const P = G.path, Cm = G.cum;
+  if (P.length < 2) return {x:G.rover.x, y:G.rover.y, a:G.rover.h};
+  if (d <= 0) return {x:P[0].x, y:P[0].y, a:Math.atan2(P[1].y - P[0].y, P[1].x - P[0].x)};
+  let lo = 1, hi = P.length - 1;                                 // binary search the segment
+  if (d >= Cm[hi]){ const n = hi; return {x:P[n].x, y:P[n].y, a:Math.atan2(P[n].y - P[n - 1].y, P[n].x - P[n - 1].x)}; }
+  while (lo < hi){ const m = (lo + hi) >> 1; if (Cm[m] < d) lo = m + 1; else hi = m; }
+  const i = lo, f = (d - Cm[i - 1]) / Math.max(.001, Cm[i] - Cm[i - 1]);
+  return {x:lerp(P[i - 1].x, P[i].x, f), y:lerp(P[i - 1].y, P[i].y, f), a:Math.atan2(P[i].y - P[i - 1].y, P[i].x - P[i - 1].x)};
+}
+function computePreds(){
+  const cur = curSpeed(2), dt = .25, steps = Math.round(CONFIG.level2Seconds / dt);
+  G.preds = G.trash.map(t => {
+    let x = t.x, y = t.y; const pts = [{x, y}]; let esc = false;
+    for (let i = 0; i < steps; i++){
+      const f = flow(x, y); x += f[0] * cur * dt; y += f[1] * cur * dt;
+      y = clamp(y, B.t, B.b - 2); if (x < B.l) x = B.l;
+      if (x > B.r){ if (y > MOUTH.t + 5 * S && y < MOUTH.b - 5 * S){ pts.push({x, y}); esc = true; break; } x = B.r; }
+      pts.push({x, y});
+    }
+    return {pts, esc};
+  });
+}
+
+/* ---------- particles, pops, gulls ---------- */
+function updateFx(dt){
+  for (let i = G.parts.length - 1; i >= 0; i--){
+    const p = G.parts[i]; p.t += dt;
+    if (p.t >= p.life){ G.parts.splice(i, 1); continue; }
+    if (p.t < 0 || p.k === "fly") continue;
+    p.x += p.vx * dt; p.y += p.vy * dt; const d = Math.exp(-dt * 2.5); p.vx *= d; p.vy *= d;
+  }
+  for (let i = G.pops.length - 1; i >= 0; i--){ G.pops[i].t += dt; if (G.pops[i].t > 1.1) G.pops.splice(i, 1); }
+  G.gullT -= dt;
+  if (G.gullT <= 0){
+    G.gullT = rnd(8, 15); const dir = Math.random() < .5 ? 1 : -1, n = Math.random() < .4 ? 2 : 1;
+    for (let i = 0; i < n; i++) G.gulls.push({x:dir > 0 ? -30 - i * 26 : W + 30 + i * 26, y:rnd(TOP, H * .7) + i * 16, vx:dir * rnd(48, 64) * S, vy:rnd(-9, 9) * S, ph:rnd(0, TAU)});
+  }
+  for (let i = G.gulls.length - 1; i >= 0; i--){
+    const g = G.gulls[i]; g.x += g.vx * dt; g.y += g.vy * dt;
+    if (g.x < -80 || g.x > W + 80) G.gulls.splice(i, 1);
+  }
+}
+
+/* ---------- update ---------- */
+function update(dt){
+  if (G.paused) return;
+  G.t += dt;
+  const r = G.rover;
+  r.scoop = Math.max(0, r.scoop - dt * 3);
+  G.shake = Math.max(0, G.shake - dt);
+  G.mouthFlash = Math.max(0, G.mouthFlash - dt * 1.4);
+  G.goT = Math.max(0, G.goT - dt);
+  updateFx(dt);
+  const m = G.mode;
+  if (m === "count1"){
+    const before = Math.ceil(G.countT); G.countT -= dt;
+    if (G.countT <= 0) beginPlay1(); else if (Math.ceil(G.countT) !== before) Sound.count(false);
+  }
+  else if (m === "play1"){
+    updateObstacles(dt); controlRover(dt); spawnTick(dt, false); updateTrash(dt, 1);
+    if (r.load.length && nearBin()) unload(true);
+    const before = Math.ceil(G.timeLeft); G.timeLeft -= dt;
+    if (Math.ceil(G.timeLeft) !== before && G.timeLeft > 0 && G.timeLeft <= 5) Sound.tick();
+    setClock(G.timeLeft / G.total, fmt(G.timeLeft), G.timeLeft <= 5.5);
+    if (G.timeLeft <= 0) endLevel1();
+  }
+  else if (m === "plan"){
+    const left = 1 - G.pathLen / G.budget;
+    setClock(left, Math.round(left * 100) + "%", left < .1);
+  }
+  else if (m === "run2"){
+    updateObstacles(dt);
+    if (G.prog < G.pathLen && G.timeLeft > 0){
+      const ahead = pathAt(Math.min(G.pathLen, G.prog + 30 * S));
+      // a wider margin while already stopped, plus a short all-clear delay, keeps the rover from stuttering
+      const pad = r.wait ? 24 * S : 16 * S;
+      const seen = obstacleNear(ahead.x, ahead.y, pad, false, true) || obstacleNear(r.x, r.y, pad - 4 * S, false, true);
+      if (seen){
+        r.clearT = 0;
+        if (!r.wait){
+          r.wait = true;
+          if (seen.name !== G.lastStop || G.t - G.lastStopT > 3){
+            G.stats.l2.stops++;
+            toast("Sensors spotted a " + seen.name + ". Waiting until it is clear.", 2200);
+            pop("AUTO STOP", r.x, r.y - 32 * S, C.coral, true); Sound.alert();
+          }
+          G.lastStop = seen.name;
+        }
+        G.lastStopT = G.t;
+      } else if (r.wait && (r.clearT = (r.clearT || 0) + dt) < .45){
+        /* hold a moment after the obstacle clears */
+      } else {
+        if (r.wait) Sound.go();
+        r.wait = false; G.prog = Math.min(G.pathLen, G.prog + G.speed2 * dt);
+      }
+    } else r.wait = false;
+    const p = pathAt(G.prog), moving = !r.wait && G.prog < G.pathLen && G.timeLeft > 0;
+    r.x = p.x; r.y = p.y; r.h = turnTo(r.h, p.a, dt * 10);
+    r.vx = moving ? Math.cos(r.h) * G.speed2 : 0; r.vy = moving ? Math.sin(r.h) * G.speed2 : 0;
+    roverWake(dt, moving ? G.speed2 : 0);
+    if (moving) tryCollect(26 * S, true);
+    updateTrash(dt, 2);
+    G.timeLeft -= dt;
+    setClock(G.timeLeft / G.total, fmt(G.timeLeft), G.timeLeft <= 5.5);
+    if (G.prog >= G.pathLen || G.timeLeft <= 0){
+      if (!G.routeDone){ G.routeDone = true; toast(G.prog >= G.pathLen ? "Route complete" : "Battery reserve reached", 1400, true); }
+      G.doneT += dt; if (G.doneT > 1.4) endGame();
+    }
+  }
+  else if (m === "title" || m === "end"){
+    if (!reduceMotion){ updateObstacles(dt); demoDrive(dt); spawnTick(dt, true); updateTrash(dt, 0); }
+  }
+  else if (!reduceMotion){                     // briefings: the harbor keeps living behind the card
+    updateObstacles(dt); spawnTick(dt, true); updateTrash(dt, 0);
+  }
+}
+
+/* ---------- drawing ---------- */
+function rr(x, y, w, h, rad){ rrp(ctx, x, y, w, h, rad); }
+function circle(x, y, r){ ctx.beginPath(); ctx.arc(x, y, r, 0, TAU); }
+function ellipse(x, y, rx, ry, a){ ctx.beginPath(); ctx.ellipse(x, y, rx, ry, a || 0, 0, TAU); }
+
+function drawShimmer(){
+  const tt = reduceMotion ? 0 : G.t, T = TILE.T;
+  ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.beginPath(); ctx.rect(0, TOP * DPR, cv.width, (H - TOP) * DPR); ctx.clip();
+  ctx.fillStyle = PAT;
+  ctx.globalAlpha = .12; ctx.translate(((tt * 7 * DPR) % T) - T, ((tt * 2 * DPR) % T) - T);
+  ctx.fillRect(0, 0, cv.width + 2 * T, cv.height + 2 * T);
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.globalAlpha = .07; ctx.translate(((-tt * 4 * DPR) % T) - T - T * .37, ((tt * 3.4 * DPR) % T) - T - T * .61);
+  ctx.fillRect(0, 0, cv.width + 3 * T, cv.height + 3 * T);
+  ctx.restore();
+}
+function drawCurrent(alpha){
+  const step = 62 * S, tt = reduceMotion ? 0 : G.t;
+  ctx.save(); ctx.lineWidth = 2; ctx.lineCap = "round"; ctx.lineJoin = "round";
+  let row = 0;
+  for (let gy = B.t + step * .45; gy < B.b - 8; gy += step * .82, row++){
+    for (let gx = B.l + (row % 2 ? step * .55 : step * .1); gx < B.r - 6; gx += step){
+      const f = flow(gx, gy), m = Math.hypot(f[0], f[1]), a = Math.atan2(f[1], f[0]);
+      const ph = (tt * .4 * m + gx * .013 + gy * .007) % 1, d = (ph - .5) * 22 * S;
+      const al = alpha * Math.sin(ph * Math.PI);
+      if (al < .02) continue;
+      ctx.strokeStyle = "rgba(244,239,225," + al.toFixed(3) + ")";
+      const s = S * (.75 + Math.min(m, 2.6) * .22);
+      ctx.save(); ctx.translate(gx + Math.cos(a) * d, gy + Math.sin(a) * d); ctx.rotate(a);
+      ctx.beginPath(); ctx.moveTo(-3 * s, -5 * s); ctx.lineTo(3 * s, 0); ctx.lineTo(-3 * s, 5 * s); ctx.stroke();
+      ctx.restore();
+    }
+  }
+  ctx.restore();
+}
+function drawDrainTrickle(){
+  const tt = reduceMotion ? 0 : G.t;
+  ctx.save(); ctx.strokeStyle = "rgba(230,220,190,.5)"; ctx.lineWidth = 1.3; ctx.lineCap = "round";
+  for (const x of drains()){
+    for (let i = 0; i < 4; i++){
+      const k = (tt * .9 + i / 4) % 1, y = TOP + 2 + k * 16 * S, w = (4 + k * 10) * S;
+      ctx.globalAlpha = 1 - k; ctx.beginPath(); ctx.moveTo(x - w, y); ctx.quadraticCurveTo(x, y + 3 * S, x + w, y); ctx.stroke();
+    }
+  }
+  ctx.restore();
+}
+const drawType = {
+  bottle(){ ctx.fillStyle = "#7fd3e6"; rr(-3.5, -7, 7, 13, 3); ctx.fill(); ctx.fillStyle = "#2b63b0"; rr(-2, -10, 4, 3.5, 1); ctx.fill();
+            ctx.fillStyle = "rgba(255,255,255,.75)"; ctx.fillRect(-3.5, -2, 7, 3.5); },
+  wrapper(){ ctx.fillStyle = "#f0714f"; ctx.beginPath(); ctx.moveTo(-6, -7); ctx.lineTo(-3, -8.5); ctx.lineTo(0, -7); ctx.lineTo(3, -8.5); ctx.lineTo(6, -7);
+             ctx.lineTo(6, 7); ctx.lineTo(3, 8.5); ctx.lineTo(0, 7); ctx.lineTo(-3, 8.5); ctx.lineTo(-6, 7); ctx.closePath(); ctx.fill();
+             ctx.fillStyle = "#ffd76a"; ellipse(0, 0, 3.6, 2.6); ctx.fill(); },
+  cup(){ ctx.fillStyle = "#f4efe1"; circle(0, 0, 7); ctx.fill();
+         ctx.strokeStyle = "#c9c1ab"; ctx.lineWidth = 1.4; circle(0, 0, 4.6); ctx.stroke();
+         ctx.strokeStyle = "#e0463c"; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(1, -1); ctx.lineTo(8, -8); ctx.stroke(); },
+  can(){ ctx.fillStyle = "#b9c2cf"; rr(-4, -7, 8, 14, 2.5); ctx.fill(); ctx.fillStyle = "#3f9b63"; ctx.fillRect(-4, -3.5, 8, 7);
+         ctx.fillStyle = "#8f98a6"; ctx.fillRect(-4, -7, 8, 1.8); },
+  foam(){ ctx.fillStyle = "#ffffff"; ctx.beginPath(); ctx.moveTo(-7, -3); ctx.lineTo(-2, -7); ctx.lineTo(6, -5); ctx.lineTo(7, 2); ctx.lineTo(2, 7); ctx.lineTo(-6, 5); ctx.closePath(); ctx.fill();
+          ctx.fillStyle = "#d8dde2"; ctx.beginPath(); ctx.arc(-1, -1, 1.2, 0, TAU); ctx.arc(3, 2, 1, 0, TAU); ctx.arc(-3, 3, .9, 0, TAU); ctx.fill(); }
+};
+function drawTrash(){
+  const tt = reduceMotion ? 0 : G.t;
+  for (const t of G.trash){
+    const bob = Math.sin(tt * 2 + t.ph) * 1.2;
+    const fade = t.esc ? Math.max(0, 1 - t.esc) : 1;
+    const sc = S * 1.15 * (t.got ? Math.max(0, 1 - t.got) : t.born) * (t.esc ? 1 - t.esc * .4 : 1);
+    if (sc <= .01) continue;
+    ctx.save(); ctx.translate(t.x, t.y + bob); ctx.globalAlpha = Math.min(t.born, fade);
+    if (!t.got){
+      const rp = (tt * .8 + t.ph) % 1;
+      ctx.strokeStyle = "rgba(244,239,225," + (.38 * (1 - rp)).toFixed(3) + ")"; ctx.lineWidth = 1.2;
+      ellipse(0, 0, (10 + rp * 6) * S, (7.5 + rp * 4.5) * S); ctx.stroke();
+      ctx.fillStyle = "rgba(4,20,30,.25)"; ellipse(2 * S, 3 * S, 7 * S, 5 * S); ctx.fill();
+    }
+    ctx.rotate(t.rot); ctx.scale(sc, sc);
+    drawType[t.type.id]();
+    ctx.restore();
+  }
+}
+function drawBoats(){
+  const tt = reduceMotion ? 0 : G.t;
+  for (const b of G.boats){
+    const y = laneY(b);
+    if (b.x < -80 * S || b.x > W + 80 * S) continue;
+    ctx.save(); ctx.translate(b.x, y); ctx.scale(b.dir * S, S);
+    ctx.fillStyle = "rgba(4,20,30,.3)"; ellipse(-3, 7, 33, 12); ctx.fill();
+    if (b.kind === "sail"){
+      ctx.fillStyle = "#fbfaf5"; ctx.beginPath(); ctx.moveTo(34, 0); ctx.quadraticCurveTo(18, -13, -26, -11); ctx.lineTo(-28, 11); ctx.quadraticCurveTo(18, 13, 34, 0); ctx.closePath(); ctx.fill();
+      ctx.strokeStyle = "#2b63b0"; ctx.lineWidth = 1.6; ctx.stroke();
+      ctx.fillStyle = "#c98a4b"; rr(-22, -6.5, 30, 13, 4); ctx.fill();
+      ctx.fillStyle = "#e9e4d6"; rr(-1, -5, 13, 10, 3); ctx.fill();
+      const sa = .38 + Math.sin(tt * .7 + b.lf * 9) * .08;
+      ctx.save(); ctx.translate(10, 0); ctx.rotate(Math.PI - sa);
+      ctx.fillStyle = "rgba(4,20,30,.18)"; ctx.beginPath(); ctx.moveTo(0, 3); ctx.quadraticCurveTo(15, 8, 31, 3); ctx.lineTo(31, 5); ctx.quadraticCurveTo(15, 10, 0, 5); ctx.fill();
+      ctx.fillStyle = "#f4efe1"; ctx.beginPath(); ctx.moveTo(0, -2); ctx.quadraticCurveTo(15, -7, 31, -1); ctx.lineTo(31, 1.5); ctx.quadraticCurveTo(15, 2, 0, 2); ctx.closePath(); ctx.fill();
+      ctx.strokeStyle = "#e0463c"; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(31, 0); ctx.stroke();
+      ctx.restore();
+      ctx.fillStyle = "#333"; circle(10, 0, 2.2); ctx.fill();
+    } else {
+      ctx.fillStyle = "#eef1f4"; ctx.beginPath(); ctx.moveTo(32, 0); ctx.lineTo(16, -11); ctx.lineTo(-26, -11); ctx.lineTo(-27, 11); ctx.lineTo(16, 11); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = C.coral; ctx.fillRect(-27, -11, 4, 22);
+      ctx.fillStyle = "#d7dce2"; rr(-20, -7, 30, 14, 2); ctx.fill();
+      ctx.fillStyle = "#2b3443"; rr(-4, -6, 12, 12, 2); ctx.fill();
+      ctx.fillStyle = "#7fd3e6"; rr(8, -6, 3, 12, 1); ctx.fill();
+      ctx.fillStyle = "#1a1e26"; rr(-33, -3.5, 7, 7, 1.5); ctx.fill();
+      ctx.strokeStyle = "#9aa3ad"; ctx.lineWidth = 1; for (let k = -14; k < -6; k += 3){ ctx.beginPath(); ctx.moveTo(k, -6); ctx.lineTo(k, 6); ctx.stroke(); }
+    }
+    ctx.restore();
+  }
+}
+function drawLion(){
+  const L = G.lion; if (L.state === "down") return;
+  const tt = reduceMotion ? 0 : G.t;
+  ctx.save(); ctx.translate(L.x, L.y);
+  if (L.state === "warn"){
+    for (let i = 0; i < 3; i++){ const k = (tt * 1.4 + i / 3) % 1; ctx.strokeStyle = "rgba(244,239,225," + (.6 * (1 - k)).toFixed(3) + ")"; ctx.lineWidth = 2; circle(0, 0, (6 + k * 22) * S); ctx.stroke(); }
+    ctx.fillStyle = "rgba(244,239,225,.7)";
+    for (let i = 0; i < 4; i++){ const a = i * 1.7 + tt * 2; circle(Math.cos(a) * 5 * S, Math.sin(a * 1.3) * 5 * S, 1.4 * S); ctx.fill(); }
+  } else {
+    const e = clamp((2.6 - L.t) / .35, 0, 1) * clamp(L.t / .35, 0, 1);
+    ctx.strokeStyle = "rgba(244,239,225,.45)"; ctx.lineWidth = 1.6; ellipse(0, 2 * S, 15 * S, 12 * S); ctx.stroke();
+    ctx.rotate(L.a); const k = S * (.6 + .4 * e); ctx.scale(k, k); ctx.globalAlpha = .35 + .65 * e;
+    ctx.fillStyle = "rgba(40,30,22,.45)"; ellipse(0, 7, 9, 13); ctx.fill();
+    ctx.fillStyle = "#5b4634"; ellipse(0, 1, 8.5, 10); ctx.fill();
+    ctx.fillStyle = "#6d5540"; ellipse(0, -7, 6.2, 6); ctx.fill();
+    ctx.fillStyle = "#86694f"; ellipse(0, -12, 3.6, 3); ctx.fill();
+    ctx.fillStyle = "#1a1410"; circle(-2.8, -8.5, 1.2); ctx.fill(); circle(2.8, -8.5, 1.2); ctx.fill(); circle(0, -14.2, 1); ctx.fill();
+    ctx.strokeStyle = "rgba(244,239,225,.75)"; ctx.lineWidth = .6;
+    for (const s of [-1, 1]){ ctx.beginPath(); ctx.moveTo(s * 2, -12); ctx.lineTo(s * 8, -13.5); ctx.moveTo(s * 2, -11.5); ctx.lineTo(s * 8, -10.5); ctx.stroke(); }
+    ctx.fillStyle = "rgba(255,255,255,.22)"; ellipse(-2.5, -2, 2, 4.5); ctx.fill();
+  }
+  ctx.restore();
+}
+function drawBuoy(){
+  const p = buoyPos(), tt = reduceMotion ? 0 : G.t, bob = Math.sin(tt * 1.6) * .8;
+  ctx.save(); ctx.translate(p.x, p.y + bob);
+  const rp = (tt * .5) % 1;
+  ctx.strokeStyle = "rgba(244,239,225," + (.4 * (1 - rp)).toFixed(3) + ")"; ctx.lineWidth = 1.5; circle(0, 0, (16 + rp * 8) * S); ctx.stroke();
+  ctx.fillStyle = "rgba(4,20,30,.3)"; circle(3 * S, 4 * S, 13 * S); ctx.fill();
+  ctx.fillStyle = "#eef2f4"; circle(0, 0, 13 * S); ctx.fill();
+  ctx.strokeStyle = C.coral; ctx.lineWidth = 4.5 * S; circle(0, 0, 9.5 * S); ctx.stroke();
+  ctx.rotate(-.55 + Math.sin(tt * .9) * .03); ctx.scale(S, S);
+  ctx.fillStyle = "#4a382a"; ellipse(-7, -3, 3, 5, -.6); ctx.fill(); ellipse(7, -3, 3, 5, .6); ctx.fill();
+  ctx.fillStyle = "#4a382a"; ellipse(-3, 14, 2.4, 4, .4); ctx.fill(); ellipse(3, 14, 2.4, 4, -.4); ctx.fill();
+  ctx.fillStyle = "#5b4634"; ellipse(0, 1, 6.5, 13); ctx.fill();
+  ctx.fillStyle = "#6d5540"; ellipse(0, -11, 5, 5); ctx.fill();
+  ctx.fillStyle = "#86694f"; ellipse(0, -15, 3, 2.4); ctx.fill();
+  ctx.strokeStyle = "#1a1410"; ctx.lineWidth = .9; ctx.beginPath(); ctx.moveTo(-3.2, -12); ctx.lineTo(-1.4, -12); ctx.moveTo(1.4, -12); ctx.lineTo(3.2, -12); ctx.stroke();
+  ctx.restore();
+}
+function drawRover(){
+  const r = G.rover, sp = Math.hypot(r.vx, r.vy), auto = G.mode === "run2" || G.mode === "title" || G.mode === "end";
+  const tt = G.t;
+  ctx.save(); ctx.translate(r.x, r.y);
+  if (G.mode === "run2"){                                      // sensor cone
+    ctx.save(); ctx.rotate(r.h);
+    const R = 60 * S, a = .5, col = r.wait ? "240,113,79" : "244,239,225";
+    const gr = ctx.createRadialGradient(0, 0, 10 * S, 0, 0, R);
+    gr.addColorStop(0, "rgba(" + col + "," + (r.wait ? .4 : .16) + ")"); gr.addColorStop(1, "rgba(" + col + ",0)");
+    ctx.fillStyle = gr; ctx.beginPath(); ctx.moveTo(0, 0); ctx.arc(0, 0, R, -a, a); ctx.closePath(); ctx.fill();
+    const sw = Math.sin(tt * 4) * a;
+    ctx.strokeStyle = "rgba(" + col + ",.5)"; ctx.lineWidth = 1.4;
+    ctx.beginPath(); ctx.moveTo(12 * S, 0); ctx.lineTo(Math.cos(sw) * R, Math.sin(sw) * R); ctx.stroke();
+    ctx.restore();
+  }
+  if (r.wait || r.stall > 0){
+    ctx.save(); ctx.rotate(tt * 1.5); ctx.strokeStyle = C.coral; ctx.lineWidth = 2.2; ctx.setLineDash([5, 5]);
+    circle(0, 0, (32 + Math.sin(tt * 8) * 2) * S); ctx.stroke(); ctx.restore();
+  }
+  const k = S * 1.15;
+  ctx.save(); ctx.translate(3 * S, 4 * S); ctx.rotate(r.h + Math.PI / 2); ctx.scale(k, k);
+  ctx.fillStyle = "rgba(4,20,30,.3)"; rr(-17, -23, 34, 46, 8); ctx.fill(); ctx.restore();
+  ctx.rotate(r.h + Math.PI / 2); ctx.scale(k, k);
+  // intake and catch basket between the floats
+  ctx.fillStyle = "rgba(7,30,40,.55)"; ctx.fillRect(-8.5, -20, 17, 23);
+  for (let i = 0; i < Math.min(r.load.length, 10); i++){
+    const col = i % 2, row = Math.floor(i / 2);
+    ctx.fillStyle = r.load[i]; ctx.fillRect(col ? .6 : -7.6, -1.2 - row * 3.9, 7, 3.2);
+  }
+  const off = (tt * (sp > 20 ? 16 : 0)) % 4;
+  ctx.strokeStyle = "rgba(244,239,225,.5)"; ctx.lineWidth = .7;
+  for (let y = -20 + off; y < 3; y += 4){ ctx.beginPath(); ctx.moveTo(-8.5, y); ctx.lineTo(8.5, y); ctx.stroke(); }
+  for (const x of [-4.2, 0, 4.2]){ ctx.beginPath(); ctx.moveTo(x, -20); ctx.lineTo(x, 3); ctx.stroke(); }
+  if (r.scoop > 0){ ctx.fillStyle = "rgba(232,181,58," + (r.scoop * .75).toFixed(3) + ")"; ctx.fillRect(-8.5, -20, 17, 23); }
+  ctx.fillStyle = C.gold; ctx.fillRect(-8.5, -21.5, 17, 2.2);
+  // inflatable floats
+  for (const sx of [-1, 1]){
+    const x = sx * 12.5;
+    ctx.fillStyle = "#262b34"; rr(x - 4.5, -23, 9, 46, 4.5); ctx.fill();
+    ctx.fillStyle = "rgba(255,255,255,.16)"; rr(x - 3, -21, 2.4, 41, 1.2); ctx.fill();
+    ctx.fillStyle = C.gold; rr(x - 4.5, -23, 9, 4.5, 2.2); ctx.fill();
+  }
+  // deck with solar panel, lidar and status light
+  ctx.fillStyle = C.navy; rr(-14, 3, 28, 18, 3); ctx.fill();
+  ctx.fillStyle = C.gold; rr(-11.5, 5.5, 23, 8.5, 1.5); ctx.fill();
+  ctx.strokeStyle = "rgba(16,29,54,.5)"; ctx.lineWidth = .8;
+  ctx.beginPath(); for (const x of [-5.7, 0, 5.7]){ ctx.moveTo(x, 5.5); ctx.lineTo(x, 14); } ctx.moveTo(-11.5, 9.75); ctx.lineTo(11.5, 9.75); ctx.stroke();
+  ctx.fillStyle = "#d8dde2"; circle(-5, 17, 2.6); ctx.fill();
+  if (auto){ ctx.fillStyle = C.navy; ctx.beginPath(); ctx.moveTo(-5, 17); ctx.arc(-5, 17, 2.6, tt * 8, tt * 8 + 1.2); ctx.closePath(); ctx.fill(); }
+  const ledStop = r.wait || r.stall > 0, blink = Math.sin(tt * 7) > 0;
+  ctx.fillStyle = ledStop ? (blink ? C.coral : "#7a2a1a") : auto ? (blink ? C.gold : "#6a5420") : "#4bd27a";
+  circle(5.5, 17, 1.8); ctx.fill();
+  ctx.fillStyle = "#1a1e26"; rr(-15, 21, 5, 3, 1); ctx.fill(); rr(10, 21, 5, 3, 1); ctx.fill();
+  ctx.restore();
+}
+function drawPlanOverlay(){
+  ctx.save();
+  for (const b of G.boats){
+    const y = laneY(b), h = 15 * S;
+    ctx.fillStyle = "rgba(240,113,79,.08)"; ctx.fillRect(B.l, y - h, B.r - B.l, h * 2);
+    ctx.strokeStyle = "rgba(240,113,79,.55)"; ctx.lineWidth = 1.6; ctx.setLineDash([3, 8]);
+    ctx.beginPath(); ctx.moveTo(B.l, y - h); ctx.lineTo(B.r, y - h); ctx.moveTo(B.l, y + h); ctx.lineTo(B.r, y + h); ctx.stroke();
+    ctx.setLineDash([]); ctx.font = "700 " + Math.round(10 * S) + "px " + FB; ctx.fillStyle = "rgba(244,239,225,.85)"; ctx.textAlign = "left";
+    ctx.fillText("BOAT LANE · ROVER WAITS HERE", B.l + 2, y - h - 4);
+  }
+  const p = buoyPos();
+  ctx.strokeStyle = "rgba(240,113,79,.6)"; ctx.lineWidth = 1.6; ctx.setLineDash([4, 6]); circle(p.x, p.y, 30 * S); ctx.stroke(); ctx.setLineDash([]);
+  /* where the current will carry each piece, dot every 5 seconds */
+  ctx.lineCap = "round";
+  for (const pr of G.preds){
+    const P = pr.pts; if (P.length < 2) continue;
+    ctx.strokeStyle = "rgba(244,239,225,.24)"; ctx.lineWidth = 1.3; ctx.setLineDash([2, 4]);
+    ctx.beginPath(); P.forEach((q, i) => i ? ctx.lineTo(q.x, q.y) : ctx.moveTo(q.x, q.y)); ctx.stroke(); ctx.setLineDash([]);
+    ctx.fillStyle = "rgba(244,239,225,.7)";
+    for (let i = 20; i < P.length; i += 20){ circle(P[i].x, P[i].y, 2.2 * S); ctx.fill(); }
+    if (pr.esc){
+      const e = P[P.length - 1]; ctx.strokeStyle = C.coral; ctx.lineWidth = 2.2;
+      ctx.beginPath(); ctx.moveTo(e.x - 4 * S, e.y - 4 * S); ctx.lineTo(e.x + 4 * S, e.y + 4 * S); ctx.moveTo(e.x + 4 * S, e.y - 4 * S); ctx.lineTo(e.x - 4 * S, e.y + 4 * S); ctx.stroke();
+    }
+  }
+  if (!G.path.length){
+    const r = G.rover, k = (G.t * .8) % 1;
+    ctx.strokeStyle = "rgba(232,181,58," + (1 - k).toFixed(3) + ")"; ctx.lineWidth = 2.5; circle(r.x, r.y, (24 + k * 22) * S); ctx.stroke();
+    ctx.font = "900 " + Math.round(15 * S) + "px " + FD; ctx.textAlign = "center"; ctx.lineWidth = 4; ctx.strokeStyle = C.navy; ctx.fillStyle = C.gold;
+    ctx.strokeText("DRAW FROM HERE", r.x, r.y - 36 * S); ctx.fillText("DRAW FROM HERE", r.x, r.y - 36 * S);
+  }
+  ctx.restore();
+}
+function tracePath(from){
+  const P = G.path; let i = 1;
+  if (from > 0){ while (i < P.length && G.cum[i] <= from) i++; const s = pathAt(from); ctx.moveTo(s.x, s.y); }
+  else ctx.moveTo(P[0].x, P[0].y);
+  for (; i < P.length; i++) ctx.lineTo(P[i].x, P[i].y);
+}
+function drawPath(){
+  if (G.path.length < 2) return;
+  const run = G.mode === "run2", tt = reduceMotion ? 0 : G.t;
+  ctx.save(); ctx.lineCap = "round"; ctx.lineJoin = "round";
+  if (run){ ctx.strokeStyle = "rgba(232,181,58,.22)"; ctx.lineWidth = 3; ctx.beginPath(); tracePath(0); ctx.stroke(); }
+  ctx.strokeStyle = "rgba(7,14,28,.35)"; ctx.lineWidth = 7; ctx.beginPath(); tracePath(run ? G.prog : 0); ctx.stroke();
+  ctx.strokeStyle = C.gold; ctx.lineWidth = 3.5; ctx.setLineDash([10, 9]); ctx.lineDashOffset = -tt * 24;
+  ctx.beginPath(); tracePath(run ? G.prog : 0); ctx.stroke(); ctx.setLineDash([]);
+  /* time ticks: when the rover will reach each point, if nothing makes it wait */
+  const every = 5 * G.speed2;
+  ctx.font = "900 " + Math.round(11 * S) + "px " + FD; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+  for (let k = 1; k * every < G.pathLen; k++){
+    const d = k * every; if (run && d < G.prog) continue;
+    const q = pathAt(d);
+    ctx.fillStyle = C.navy; circle(q.x, q.y, 9 * S); ctx.fill();
+    ctx.strokeStyle = C.gold; ctx.lineWidth = 1.6; ctx.stroke();
+    ctx.fillStyle = C.gold; ctx.fillText(String(k * 5), q.x, q.y + .5);
+  }
+  const e = G.path[G.path.length - 1];
+  ctx.fillStyle = C.gold; circle(e.x, e.y, 7); ctx.fill();
+  ctx.fillStyle = C.navy; circle(e.x, e.y, 3); ctx.fill();
+  ctx.restore();
+}
+function drawParticles(top){
+  for (const p of G.parts){
+    if (p.t < 0 || (p.k === "fly") !== top) continue;
+    const u = p.t / p.life;
+    if (p.k === "wake"){ ctx.fillStyle = "rgba(244,239,225," + (.42 * (1 - u)).toFixed(3) + ")"; circle(p.x, p.y, p.s * (1 + u * 2.2)); ctx.fill(); }
+    else if (p.k === "drop"){ ctx.fillStyle = "rgba(" + p.col + "," + (1 - u).toFixed(3) + ")"; circle(p.x, p.y, p.s * (1 - u * .6)); ctx.fill(); }
+    else if (p.k === "ring"){ ctx.strokeStyle = "rgba(" + p.col + "," + (.8 * (1 - u)).toFixed(3) + ")"; ctx.lineWidth = 2; circle(p.x, p.y, p.s + u * 20 * S); ctx.stroke(); }
+    else if (p.k === "fly"){
+      const x = lerp(p.x, p.x1, u), y = lerp(p.y, p.y1, u) - Math.sin(u * Math.PI) * 46 * S, s = 4.5 * S * (1 - u * .4);
+      ctx.fillStyle = p.col; ctx.fillRect(x - s / 2, y - s / 2, s, s);
+    }
+  }
+}
+function drawLive(){
+  const tt = reduceMotion ? 0 : G.t, mx = B.r + 8 * S;
+  /* channel markers: green on one side, red on the other */
+  const lights = [[MOUTH.t - 4 * S, "75,210,122", 0], [MOUTH.b + 4 * S, "240,80,70", Math.PI]];
+  for (const [y, col, ph] of lights){
+    const on = .5 + .5 * Math.sin(tt * 3 + ph);
+    const gr = ctx.createRadialGradient(mx, y, 0, mx, y, 14 * S);
+    gr.addColorStop(0, "rgba(" + col + "," + (.65 * on).toFixed(3) + ")"); gr.addColorStop(1, "rgba(" + col + ",0)");
+    ctx.fillStyle = gr; circle(mx, y, 14 * S); ctx.fill();
+    ctx.fillStyle = "rgb(" + col + ")"; circle(mx, y, 2.6 * S); ctx.fill();
+  }
+  /* basket gauge on the dock during level 1 */
+  if (G.mode === "play1" || G.mode === "count1"){
+    const n = G.rover.load.length, N = CONFIG.basketSize, full = n >= N;
+    const x0 = W / 2 + 40 * S, y0 = DOCK.y + 15 * S, cw = Math.min(8 * S, (W - x0 - 12 * S) / N - 2);
+    ctx.font = "900 " + Math.round(11 * S) + "px " + FD; ctx.textAlign = "left"; ctx.textBaseline = "alphabetic";
+    ctx.fillStyle = full ? C.coral : C.foam; ctx.fillText("BASKET " + n + "/" + N, x0, y0 + 2 * S);
+    for (let i = 0; i < N; i++){
+      ctx.fillStyle = i < n ? (full ? (Math.sin(tt * 10) > 0 ? C.coral : "#ff9c7f") : C.gold) : "rgba(16,29,54,.55)";
+      ctx.fillRect(x0 + i * (cw + 2), y0 + 6 * S, cw, 10 * S);
+    }
+    if (full){
+      const b = binPos(), k = (tt * 1.4) % 1;
+      ctx.strokeStyle = "rgba(232,181,58," + (1 - k).toFixed(3) + ")"; ctx.lineWidth = 3; ellipse(b.x, b.y, (30 + k * 26) * S, (14 + k * 12) * S); ctx.stroke();
+      const r = G.rover, dx = b.x - r.x, dy = b.y - r.y, d = Math.hypot(dx, dy);
+      if (d > 70 * S){
+        const a = Math.atan2(dy, dx), ax = r.x + Math.cos(a) * 44 * S, ay = r.y + Math.sin(a) * 44 * S;
+        ctx.save(); ctx.translate(ax, ay); ctx.rotate(a); ctx.fillStyle = C.gold; ctx.strokeStyle = C.navy; ctx.lineWidth = 2.5;
+        ctx.beginPath(); ctx.moveTo(12 * S, 0); ctx.lineTo(-6 * S, -9 * S); ctx.lineTo(-2 * S, 0); ctx.lineTo(-6 * S, 9 * S); ctx.closePath(); ctx.stroke(); ctx.fill();
+        ctx.restore();
+      }
+    }
+  }
+}
+function drawGulls(){
+  const tt = reduceMotion ? 0 : G.t;
+  for (const g of G.gulls){
+    const a = Math.atan2(g.vy, g.vx), span = 10 * (.55 + .45 * Math.abs(Math.cos(tt * 7 + g.ph)));
+    for (const sh of [true, false]){
+      ctx.save(); ctx.translate(g.x + (sh ? 16 * S : 0), g.y + (sh ? 34 * S : 0)); ctx.rotate(a); ctx.scale(S * 1.1, S * 1.1);
+      ctx.strokeStyle = sh ? "rgba(4,20,30,.2)" : "#f7f5ef"; ctx.lineWidth = 2.6; ctx.lineCap = "round";
+      ctx.beginPath(); ctx.moveTo(-3, -span); ctx.quadraticCurveTo(2, -span * .4, 0, 0); ctx.quadraticCurveTo(2, span * .4, -3, span); ctx.stroke();
+      if (!sh){
+        ctx.fillStyle = "#e8e6df"; ellipse(0, 0, 5, 1.8); ctx.fill();
+        ctx.fillStyle = "#3a3f48"; circle(-3, -span, 1.1); ctx.fill(); circle(-3, span, 1.1); ctx.fill();
+        ctx.fillStyle = C.gold; circle(5.2, 0, .9); ctx.fill();
+      }
+      ctx.restore();
+    }
+  }
+}
+function drawPops(){
+  ctx.textAlign = "center"; ctx.textBaseline = "alphabetic"; ctx.lineJoin = "round";
+  for (const p of G.pops){
+    const u = p.t / 1.1, sz = Math.round((p.big ? 22 : 18) * S * (p.t < .12 ? .7 + p.t * 2.5 : 1));
+    ctx.font = "900 " + sz + "px " + FD;
+    ctx.globalAlpha = 1 - u * u; ctx.lineWidth = 4; ctx.strokeStyle = C.navy; ctx.fillStyle = p.col;
+    const y = p.y - u * 28 * S, x = clamp(p.x, 50 * S, W - 50 * S);
+    ctx.strokeText(p.text, x, y); ctx.fillText(p.text, x, y);
+  }
+  ctx.globalAlpha = 1;
+}
+function drawJoy(){
+  const j = G.joy; if (!j || G.mode !== "play1") return;
+  ctx.save();
+  ctx.fillStyle = "rgba(7,14,28,.18)"; circle(j.ox, j.oy, 48); ctx.fill();
+  ctx.strokeStyle = "rgba(244,239,225,.6)"; ctx.lineWidth = 2.5; circle(j.ox, j.oy, 48); ctx.stroke();
+  let dx = j.x - j.ox, dy = j.y - j.oy; const d = Math.hypot(dx, dy); if (d > 46){ dx = dx / d * 46; dy = dy / d * 46; }
+  ctx.fillStyle = "rgba(232,181,58,.9)"; circle(j.ox + dx, j.oy + dy, 18); ctx.fill();
+  ctx.restore();
+}
+function drawCountdown(){
+  let txt = null, k = 0;
+  if (G.mode === "count1"){ txt = String(Math.max(1, Math.ceil(G.countT))); k = G.countT - Math.floor(G.countT); }
+  else if (G.goT > 0){ txt = "GO!"; k = G.goT / .8; }
+  if (!txt) return;
+  const sc = 1 + (reduceMotion ? 0 : k * .35);
+  ctx.save(); ctx.translate(W / 2, (B.t + B.b) / 2); ctx.scale(sc, sc);
+  ctx.font = "900 " + Math.round(120 * S) + "px " + FD; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+  ctx.globalAlpha = G.mode === "count1" ? 1 : Math.min(1, k * 1.6);
+  ctx.lineWidth = 12 * S; ctx.lineJoin = "round"; ctx.strokeStyle = C.navy; ctx.strokeText(txt, 0, 0);
+  ctx.fillStyle = C.gold; ctx.fillText(txt, 0, 0);
+  ctx.restore();
+}
+function draw(){
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  if (G.shake > 0 && !reduceMotion){ ctx.fillStyle = C.navy; ctx.fillRect(0, 0, W, H); ctx.translate(rnd(-1, 1) * G.shake * 14, rnd(-1, 1) * G.shake * 14); }
+  ctx.drawImage(LAYER_BASE, 0, 0, W, H);
+  drawShimmer();
+  drawDrainTrickle();
+  const m = G.mode;
+  drawCurrent(m === "plan" || m === "run2" ? .55 : m === "play1" || m === "count1" ? .32 : .22);
+  if (G.mouthFlash > 0){ ctx.fillStyle = "rgba(240,113,79," + (.32 * G.mouthFlash).toFixed(3) + ")"; ctx.fillRect(B.r - 26 * S, MOUTH.t, W - B.r + 26 * S, MOUTH.b - MOUTH.t); }
+  if (m === "plan") drawPlanOverlay();
+  if (m === "plan" || m === "run2") drawPath();
+  drawParticles(false);
+  drawTrash(); drawBuoy(); drawLion(); drawRover(); drawBoats();
+  ctx.drawImage(LAYER_TOP, 0, 0, W, H);
+  drawLive();
+  drawParticles(true);
+  drawGulls(); drawPops(); drawJoy(); drawCountdown();
+}
+
+/* ---------- input ---------- */
+function pt(e){ const r = cv.getBoundingClientRect(); return {x:e.clientX - r.left, y:e.clientY - r.top}; }
+cv.addEventListener("pointerdown", e => {
+  e.preventDefault(); Sound.init();
+  if (G.paused) return;
+  try { cv.setPointerCapture(e.pointerId); } catch (err) {}
+  const p = pt(e);
+  if (G.mode === "play1" && !G.joy) G.joy = {ox:p.x, oy:p.y, x:p.x, y:p.y, id:e.pointerId};
+  else if (G.mode === "plan"){ G.drawing = true; G.batteryNag = false; G.strokes.push(G.path.length); addPathPoint(p); }
+});
+cv.addEventListener("pointermove", e => {
+  if (G.paused) return;
+  const p = pt(e);
+  if (G.mode === "play1" && G.joy && G.joy.id === e.pointerId){ G.joy.x = p.x; G.joy.y = p.y; }
+  else if (G.mode === "plan" && G.drawing){
+    const ev = e.getCoalescedEvents ? e.getCoalescedEvents() : null;
+    if (ev && ev.length) for (const c of ev) addPathPoint(pt(c)); else addPathPoint(p);
+  }
+});
+const up = e => {
+  if (G.joy && G.joy.id === e.pointerId) G.joy = null;
+  if (G.mode === "plan" && G.drawing){
+    if (G.strokes.length && G.strokes[G.strokes.length - 1] >= G.path.length) G.strokes.pop();
+    if (G.path.length === 1) clearPath();
+  }
+  G.drawing = false; updatePlanButtons();
+};
+cv.addEventListener("pointerup", up); cv.addEventListener("pointercancel", up);
+cv.addEventListener("contextmenu", e => e.preventDefault());
+window.addEventListener("keydown", e => {
+  if ((e.key === "Escape" || e.key === "p" || e.key === "P") && ACTIVE.has(G.mode)){ G.paused ? resume() : pause(); e.preventDefault(); return; }
+  if (G.mode === "plan" && !G.paused){
+    if (e.key === "Enter" && !$("btnLaunch").disabled && document.activeElement === document.body){ launch(); e.preventDefault(); }
+    if ((e.key === "z" && (e.ctrlKey || e.metaKey)) || e.key === "Backspace"){ undo(); e.preventDefault(); }
+  }
+  G.keys[e.key] = true;
+  if ((G.mode === "play1" || G.mode === "count1") && (e.key.startsWith("Arrow") || e.key === " ")) e.preventDefault();
+});
+window.addEventListener("keyup", e => { G.keys[e.key] = false; });
+window.addEventListener("blur", () => { G.keys = {}; G.joy = null; G.drawing = false; });
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden){ pause(); Sound.suspend(); } else Sound.resume();
+});
+const mqRot = window.matchMedia ? matchMedia("(orientation: landscape) and (max-height: 500px) and (pointer: coarse)") : null;
+if (mqRot){ const h = e => { if (e.matches) pause(); }; mqRot.addEventListener ? mqRot.addEventListener("change", h) : mqRot.addListener(h); }
+if (mqReduce){ const h = e => { reduceMotion = e.matches; }; mqReduce.addEventListener ? mqReduce.addEventListener("change", h) : mqReduce.addListener(h); }
+
+document.addEventListener("click", e => { if (e.target.closest && e.target.closest("button")){ Sound.init(); Sound.click(); } }, true);
+$("btnStart").addEventListener("click", toBrief1);
+$("btnGo1").addEventListener("click", startCountdown);
+$("btnPlan").addEventListener("click", startPlan);
+$("btnUndo").addEventListener("click", undo);
+$("btnClear").addEventListener("click", () => { if (G.mode === "plan") clearPath(); });
+$("btnLaunch").addEventListener("click", launch);
+$("btnAgain").addEventListener("click", toBrief1);
+$("btnPause").addEventListener("click", pause);
+$("btnResume").addEventListener("click", resume);
+$("btnRestart").addEventListener("click", () => { G.paused = false; toBrief1(); });
+$("btnSound").addEventListener("click", () => Sound.set(!Sound.on));
+$("btnSound2").addEventListener("click", () => Sound.set(!Sound.on));
+$("btnQR").addEventListener("click", openQR);
+$("btnQR2").addEventListener("click", openQR);
+$("btnQRClose").addEventListener("click", closeQR);
+$("btnShare").addEventListener("click", share);
+let resizeT = 0;
+window.addEventListener("resize", () => { clearTimeout(resizeT); resizeT = setTimeout(layout, 60); });
+
+/* ---------- boot ---------- */
+let last = performance.now();
+function frame(now){
+  const dt = Math.min(.05, Math.max(0, (now - last) / 1000)); last = now;
+  update(dt); draw();
+  requestAnimationFrame(frame);
+}
+G.best = Number(store.get("harborSweepBest")) || 0;
+Sound.set(Sound.on);
+toTitle();
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => renderStatic()).catch(() => {});
+requestAnimationFrame(frame);
+
+/* debug hook for testing: window.__hs exposes state only when ?debug is in the URL */
+if (/[?&]debug\b/.test(location.search)) window.__hs = {G, endLevel1, endGame, startPlan, launch, resume,
+  step(n, fn){ for (let i = 0; i < n; i++){ if (fn) fn(); update(1 / 60); } draw(); }};
+})();
+</script>
+</body>
+</html>
