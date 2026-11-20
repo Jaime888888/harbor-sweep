@@ -167,6 +167,31 @@ button.linkish{background:none;color:var(--foam);font-family:var(--body);font-we
 #rotate svg{width:56px;height:56px;fill:none;stroke:var(--gold);stroke-width:3}
 #rotate b{font-family:var(--display);font-size:30px;text-transform:uppercase;letter-spacing:.04em}
 @media (orientation:landscape) and (max-height:500px) and (pointer:coarse){#rotate{display:flex}}
+/* Leaderboard */
+.field{display:flex;flex-direction:column;gap:7px;font-size:12px;letter-spacing:.14em;text-transform:uppercase;font-weight:700;color:var(--gold)}
+.field input{font-family:var(--body);font-size:18px;font-weight:700;letter-spacing:0;text-transform:none;color:var(--foam);
+  background:rgba(244,239,225,.08);border:2px solid rgba(244,239,225,.45);border-radius:4px;padding:11px 12px;width:100%;
+  -webkit-user-select:text;user-select:text;outline:none}
+.field input:focus{border-color:var(--gold);background:rgba(244,239,225,.12)}
+.field input::placeholder{color:rgba(244,239,225,.45)}
+.tabs{display:flex;gap:6px}
+.tabs button{flex:1;font-size:16px;padding:8px 10px;background:transparent;color:var(--foam);box-shadow:inset 0 0 0 2px rgba(244,239,225,.35)}
+.tabs button[aria-selected="true"]{background:var(--foam);color:var(--navy);box-shadow:none}
+.lbwrap{display:flex;flex-direction:column;gap:8px}
+.board{list-style:none;padding:0;display:flex;flex-direction:column;gap:4px;min-height:36px}
+.board li{display:grid;grid-template-columns:28px minmax(0,1fr) auto;gap:10px;align-items:center;padding:7px 10px;
+  background:rgba(244,239,225,.07);border-radius:3px;font-size:15px;line-height:1.2}
+.board .rk{font-family:var(--display);font-weight:900;font-size:18px;color:var(--gold);text-align:center}
+.board .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:700}
+.board .sc{font-family:var(--display);font-weight:900;font-size:21px;font-variant-numeric:tabular-nums}
+.board li.me{background:var(--gold);color:var(--navy)}
+.board li.me .rk{color:var(--navy)}
+.board li.gap{display:block;background:none;text-align:center;padding:0;opacity:.6}
+.board li.empty{display:block;background:none;opacity:.75;padding:4px 0}
+.lbmsg{font-size:15px !important;line-height:1.4 !important;min-height:1.4em}
+.lbmsg b{color:var(--gold)}
+#side .sideboard{display:flex;flex-direction:column;gap:10px;width:300px}
+#side .board li{font-size:16px}
 [hidden]{display:none !important}
 @media (prefers-reduced-motion:reduce){
   #toast span,.card,.stars svg,.bar .fill,#hud .num b.bump,#clock.low{transition:none;animation:none}
@@ -182,6 +207,10 @@ button.linkish{background:none;color:var(--foam);font-family:var(--body);font-we
     <p>Scan with your phone camera to play. No app, no sign-in, about two minutes.</p>
     <div class="qr"><svg viewBox="-2 -2 37 37" role="img" aria-label="QR code that opens jaime888888.github.io/harbor-sweep" shape-rendering="crispEdges"><rect x="-2" y="-2" width="37" height="37" fill="#fff"/><path fill="#101d36" d="M0 0h7v1h-7zM8 0h2v1h-2zM14 0h1v1h-1zM16 0h4v1h-4zM21 0h1v1h-1zM23 0h2v1h-2zM26 0h7v1h-7zM0 1h1v1h-1zM6 1h1v1h-1zM8 1h8v1h-8zM18 1h7v1h-7zM26 1h1v1h-1zM32 1h1v1h-1zM0 2h1v1h-1zM2 2h3v1h-3zM6 2h1v1h-1zM8 2h1v1h-1zM12 2h2v1h-2zM15 2h5v1h-5zM26 2h1v1h-1zM28 2h3v1h-3zM32 2h1v1h-1zM0 3h1v1h-1zM2 3h3v1h-3zM6 3h1v1h-1zM8 3h2v1h-2zM11 3h1v1h-1zM13 3h1v1h-1zM16 3h4v1h-4zM22 3h2v1h-2zM26 3h1v1h-1zM28 3h3v1h-3zM32 3h1v1h-1zM0 4h1v1h-1zM2 4h3v1h-3zM6 4h1v1h-1zM8 4h2v1h-2zM12 4h1v1h-1zM15 4h1v1h-1zM17 4h2v1h-2zM20 4h2v1h-2zM23 4h2v1h-2zM26 4h1v1h-1zM28 4h3v1h-3zM32 4h1v1h-1zM0 5h1v1h-1zM6 5h1v1h-1zM9 5h1v1h-1zM15 5h1v1h-1zM17 5h1v1h-1zM19 5h1v1h-1zM21 5h1v1h-1zM23 5h1v1h-1zM26 5h1v1h-1zM32 5h1v1h-1zM0 6h7v1h-7zM8 6h1v1h-1zM10 6h1v1h-1zM12 6h1v1h-1zM14 6h1v1h-1zM16 6h1v1h-1zM18 6h1v1h-1zM20 6h1v1h-1zM22 6h1v1h-1zM24 6h1v1h-1zM26 6h7v1h-7zM8 7h1v1h-1zM10 7h2v1h-2zM13 7h1v1h-1zM15 7h5v1h-5zM21 7h1v1h-1zM1 8h2v1h-2zM4 8h1v1h-1zM6 8h2v1h-2zM9 8h1v1h-1zM13 8h3v1h-3zM17 8h1v1h-1zM20 8h3v1h-3zM24 8h1v1h-1zM26 8h1v1h-1zM28 8h5v1h-5zM1 9h2v1h-2zM7 9h1v1h-1zM9 9h2v1h-2zM12 9h4v1h-4zM17 9h2v1h-2zM20 9h3v1h-3zM24 9h4v1h-4zM31 9h2v1h-2zM1 10h2v1h-2zM4 10h5v1h-5zM10 10h1v1h-1zM14 10h2v1h-2zM18 10h1v1h-1zM20 10h3v1h-3zM27 10h1v1h-1zM30 10h3v1h-3zM1 11h2v1h-2zM4 11h2v1h-2zM7 11h3v1h-3zM11 11h1v1h-1zM13 11h2v1h-2zM17 11h2v1h-2zM20 11h6v1h-6zM28 11h1v1h-1zM2 12h2v1h-2zM5 12h2v1h-2zM8 12h3v1h-3zM13 12h2v1h-2zM18 12h4v1h-4zM23 12h1v1h-1zM25 12h2v1h-2zM29 12h1v1h-1zM31 12h2v1h-2zM0 13h1v1h-1zM2 13h4v1h-4zM9 13h1v1h-1zM11 13h1v1h-1zM13 13h1v1h-1zM15 13h1v1h-1zM18 13h2v1h-2zM22 13h1v1h-1zM24 13h3v1h-3zM29 13h1v1h-1zM32 13h1v1h-1zM0 14h1v1h-1zM3 14h1v1h-1zM6 14h1v1h-1zM8 14h1v1h-1zM10 14h2v1h-2zM13 14h1v1h-1zM17 14h2v1h-2zM22 14h1v1h-1zM25 14h1v1h-1zM27 14h1v1h-1zM31 14h2v1h-2zM1 15h1v1h-1zM4 15h1v1h-1zM7 15h3v1h-3zM11 15h1v1h-1zM13 15h3v1h-3zM18 15h1v1h-1zM20 15h2v1h-2zM24 15h1v1h-1zM26 15h1v1h-1zM28 15h2v1h-2zM31 15h1v1h-1zM0 16h1v1h-1zM2 16h2v1h-2zM6 16h1v1h-1zM8 16h1v1h-1zM11 16h1v1h-1zM14 16h3v1h-3zM18 16h9v1h-9zM0 17h2v1h-2zM3 17h2v1h-2zM7 17h1v1h-1zM10 17h6v1h-6zM17 17h1v1h-1zM21 17h2v1h-2zM24 17h4v1h-4zM32 17h1v1h-1zM0 18h1v1h-1zM2 18h1v1h-1zM5 18h2v1h-2zM8 18h4v1h-4zM14 18h2v1h-2zM17 18h2v1h-2zM20 18h2v1h-2zM26 18h1v1h-1zM30 18h3v1h-3zM0 19h6v1h-6zM8 19h2v1h-2zM11 19h2v1h-2zM15 19h1v1h-1zM18 19h2v1h-2zM21 19h3v1h-3zM27 19h2v1h-2zM31 19h1v1h-1zM0 20h1v1h-1zM4 20h1v1h-1zM6 20h2v1h-2zM12 20h3v1h-3zM16 20h2v1h-2zM19 20h3v1h-3zM23 20h4v1h-4zM29 20h1v1h-1zM1 21h1v1h-1zM5 21h1v1h-1zM9 21h3v1h-3zM13 21h1v1h-1zM15 21h1v1h-1zM17 21h1v1h-1zM24 21h1v1h-1zM26 21h2v1h-2zM30 21h3v1h-3zM0 22h1v1h-1zM2 22h1v1h-1zM4 22h1v1h-1zM6 22h2v1h-2zM10 22h1v1h-1zM12 22h1v1h-1zM14 22h4v1h-4zM20 22h1v1h-1zM22 22h1v1h-1zM24 22h1v1h-1zM27 22h1v1h-1zM31 22h2v1h-2zM1 23h3v1h-3zM8 23h1v1h-1zM10 23h1v1h-1zM14 23h4v1h-4zM19 23h1v1h-1zM21 23h1v1h-1zM25 23h2v1h-2zM28 23h1v1h-1zM32 23h1v1h-1zM0 24h1v1h-1zM2 24h1v1h-1zM4 24h3v1h-3zM8 24h2v1h-2zM11 24h1v1h-1zM13 24h2v1h-2zM16 24h3v1h-3zM21 24h2v1h-2zM24 24h5v1h-5zM8 25h1v1h-1zM11 25h1v1h-1zM15 25h1v1h-1zM21 25h4v1h-4zM28 25h2v1h-2zM31 25h2v1h-2zM0 26h7v1h-7zM8 26h1v1h-1zM10 26h1v1h-1zM12 26h3v1h-3zM17 26h1v1h-1zM20 26h1v1h-1zM23 26h2v1h-2zM26 26h1v1h-1zM28 26h1v1h-1zM30 26h3v1h-3zM0 27h1v1h-1zM6 27h1v1h-1zM9 27h1v1h-1zM11 27h1v1h-1zM13 27h1v1h-1zM19 27h1v1h-1zM21 27h2v1h-2zM24 27h1v1h-1zM28 27h1v1h-1zM31 27h1v1h-1zM0 28h1v1h-1zM2 28h3v1h-3zM6 28h1v1h-1zM8 28h4v1h-4zM13 28h1v1h-1zM19 28h1v1h-1zM21 28h1v1h-1zM24 28h6v1h-6zM31 28h2v1h-2zM0 29h1v1h-1zM2 29h3v1h-3zM6 29h1v1h-1zM10 29h3v1h-3zM14 29h4v1h-4zM20 29h1v1h-1zM28 29h5v1h-5zM0 30h1v1h-1zM2 30h3v1h-3zM6 30h1v1h-1zM8 30h2v1h-2zM12 30h1v1h-1zM14 30h2v1h-2zM18 30h1v1h-1zM22 30h1v1h-1zM24 30h1v1h-1zM28 30h3v1h-3zM32 30h1v1h-1zM0 31h1v1h-1zM6 31h1v1h-1zM8 31h1v1h-1zM10 31h1v1h-1zM12 31h1v1h-1zM15 31h1v1h-1zM19 31h3v1h-3zM23 31h3v1h-3zM28 31h1v1h-1zM31 31h1v1h-1zM0 32h7v1h-7zM10 32h1v1h-1zM15 32h1v1h-1zM18 32h1v1h-1zM21 32h4v1h-4zM28 32h1v1h-1zM31 32h2v1h-2z"/></svg></div>
     <p class="small">jaime888888.github.io/harbor-sweep</p>
+    <div class="sideboard" id="sideBoardBox" hidden>
+      <div class="eyebrow">Today's top sweepers</div>
+      <ol class="board" id="sideBoard"></ol>
+    </div>
   </aside>
 
   <div id="app">
@@ -219,7 +248,8 @@ button.linkish{background:none;color:var(--foam);font-family:var(--body);font-we
         <div class="row"><button id="btnStart" type="button">Start sweep</button></div>
         <div class="row">
           <button class="ghost sm grow" id="btnSound" type="button" aria-pressed="true">Sound on</button>
-          <button class="ghost sm grow" id="btnQR" type="button">Share game</button>
+          <button class="ghost sm grow" id="btnLB" type="button">Top scores</button>
+          <button class="ghost sm grow" id="btnQR" type="button">Share</button>
         </div>
         <p class="small"><span id="bestLine"></span>About 2 minutes. Student concept by a USC WRIT 340 ATLAS team for Clean Earth Rovers.</p>
       </div>
@@ -236,6 +266,9 @@ button.linkish{background:none;color:var(--foam);font-family:var(--body);font-we
           <li><i>3</i><span>The basket holds <strong><span id="basketN">10</span> pieces</strong>. Empty it at the catch bin on the dock.</span></li>
           <li><i>4</i><span><strong>Give room</strong> to boats and sea lions. Bumping them costs you time.</span></li>
         </ul>
+        <label class="field">Pilot name for the leaderboard
+          <input id="pilotName" type="text" maxlength="16" autocomplete="off" autocapitalize="words" autocorrect="off" spellcheck="false" enterkeyhint="go" placeholder="Type your name">
+        </label>
         <p class="small">You have <span id="l1secs">40</span> seconds.</p>
         <div class="row"><button id="btnGo1" type="button">Take the controls</button></div>
       </div>
@@ -273,6 +306,16 @@ button.linkish{background:none;color:var(--foam);font-family:var(--body);font-we
           <svg viewBox="0 0 80 80" aria-hidden="true"><circle class="trk" cx="40" cy="40" r="32"/><circle class="fil" id="ringFill" cx="40" cy="40" r="32"/><text x="40" y="41" id="ringText">0%</text></svg>
           <p id="captureText"></p>
         </div>
+        <div class="eyebrow">Leaderboard</div>
+        <p class="lbmsg" id="lbMsg" aria-live="polite"></p>
+        <div class="lbwrap" id="lbEnd">
+          <div class="tabs" role="tablist">
+            <button type="button" role="tab" data-tab="today" aria-selected="true">Today</button>
+            <button type="button" role="tab" data-tab="all" aria-selected="false">All time</button>
+          </div>
+          <ol class="board"></ol>
+        </div>
+        <div class="rule"></div>
         <div class="totals">
           <div><b id="endL1">0</b><span>Remote control</span></div>
           <div><b id="endL2">0</b><span>Autopilot</span></div>
@@ -308,6 +351,23 @@ button.linkish{background:none;color:var(--foam);font-family:var(--body);font-we
       </div>
     </div>
 
+    <!-- Leaderboard -->
+    <div class="scrim" id="c-lb" hidden>
+      <div class="card">
+        <div class="eyebrow">Leaderboard</div>
+        <h2>Top <b>sweepers</b></h2>
+        <p class="lbmsg" id="lbMsg2" aria-live="polite"></p>
+        <div class="lbwrap" id="lbView">
+          <div class="tabs" role="tablist">
+            <button type="button" role="tab" data-tab="today" aria-selected="true">Today</button>
+            <button type="button" role="tab" data-tab="all" aria-selected="false">All time</button>
+          </div>
+          <ol class="board"></ol>
+        </div>
+        <div class="row"><button id="btnLBClose" type="button">Done</button></div>
+      </div>
+    </div>
+
     <!-- QR -->
     <div class="scrim" id="c-qr" hidden>
       <div class="card center">
@@ -339,6 +399,9 @@ button.linkish{background:none;color:var(--foam);font-family:var(--body);font-we
 ------------------------------------------------------------------- */
 const CONFIG = {
   url: "https://jaime888888.github.io/harbor-sweep/",
+  // Google Apps Script web-app URL (ends in /exec) for the shared leaderboard. See leaderboard/Code.gs.
+  // Left empty, each device keeps its own leaderboard.
+  leaderboardUrl: "",
   level1Seconds: 40,
   level2Seconds: 30,
   basketSize: 10,
@@ -717,11 +780,14 @@ function spawnTick(dt, ambient){
 }
 
 /* ---------- flow between screens ---------- */
-const CARDS = ["c-title", "c-brief1", "c-result1", "c-end", "c-pause", "c-qr"];
-let qrReturn = null;
+const CARDS = ["c-title", "c-brief1", "c-result1", "c-end", "c-pause", "c-qr", "c-lb"];
+let qrReturn = null, lbReturn = null;
 function show(id){
   for (const c of CARDS) $(c).hidden = c !== id;
-  if (id){ const b = $(id).querySelector("button:not(.ghost):not(.linkish)"); if (b && matchMedia("(pointer:fine)").matches) try { b.focus({preventScroll:true}); } catch (e) {} }
+  if (id && matchMedia("(pointer:fine)").matches){
+    const b = $(id).querySelector("input") || $(id).querySelector("button:not(.ghost):not(.linkish):not([role=tab])");
+    if (b) try { b.focus({preventScroll:true}); if (b.select) b.select(); } catch (e) {}
+  }
 }
 function setHud(name){ $("hud").hidden = false; $("lvlName").textContent = name; }
 function fmt(s){ s = Math.max(0, Math.ceil(s)); return Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0"); }
@@ -747,9 +813,16 @@ function toBrief1(){
     G.trash.push(mkTrash(B.r - rnd(90, 130) * S, lerp(MOUTH.t, MOUTH.b, .3 + i * .4) + rnd(-10, 10) * S, 0, 0, false));
   }
   $("l1secs").textContent = CONFIG.level1Seconds; $("basketN").textContent = CONFIG.basketSize;
+  // a phone usually belongs to one person, so remember the name there; a shared laptop starts blank
+  $("pilotName").value = G.pilotTyped || (matchMedia("(pointer:coarse)").matches ? store.get("harborSweepName") || "" : "");
   show("c-brief1");
 }
 function startCountdown(){
+  const typed = cleanName($("pilotName").value);
+  G.pilotTyped = typed;
+  G.pilot = typed || "Pilot " + (100 + Math.floor(Math.random() * 900));
+  if (typed) store.set("harborSweepName", typed);
+  $("pilotName").blur();
   G.mode = "count1"; G.countT = 3; G.joy = null; G.keys = {};
   setHud("Level 1 · Remote control"); $("count").textContent = "0";
   G.timeLeft = G.total = CONFIG.level1Seconds; G.lastClock = ""; setClock(1, fmt(G.total));
@@ -822,6 +895,7 @@ function endGame(){
   $("endSources").innerHTML = "Rover facts from " + CONFIG.sources.map(s =>
     '<a href="' + s[1] + '" target="_blank" rel="noopener">' + s[0] + "</a>").join(", ") + ". Game scores are not real cleanup data.";
   G.lastShare = tot;
+  submitScore({name:G.pilot || "Rover pilot", l1, l2, kept:pct, escaped:esc, stops});
   $("hud").hidden = true; $("planbar").hidden = true; INSET = 0; layout();
   G.rover.wait = false; G.rover.load = []; if (G.trash.length < 8) for (let i = 0; i < 6; i++) G.trash.push(placeTrash());
   Sound.fanfare(); show("c-end"); $("c-end").scrollTop = 0;
@@ -859,6 +933,152 @@ function toast(msg, ms, good){
 }
 function pop(text, x, y, col, big){ G.pops.push({text, x, y, col:col || C.gold, t:0, big:!!big}); }
 function addP(p){ if (G.parts.length < 320) G.parts.push(p); }
+
+/* ---------- leaderboard ----------
+   Scores go to a Google Sheet through an Apps Script web app (CONFIG.leaderboardUrl).
+   Every score is also kept on this device, and anything that could not be sent waits
+   in a queue and goes up the next time the game is opened or finished. */
+const DEBUG = /[?&]debug\b/.test(location.search);
+const BLOCK = ["fuck", "shit", "bitch", "cunt", "nigg", "faggot", "pussy", "whore", "slut", "nazi", "hitler",
+               "asshole", "retard", "puto", "pendej", "mierda", "verga", "chinga", "culero", "pinche"];
+function cleanName(s){
+  s = String(s || "").replace(/[^A-Za-z0-9À-ÖØ-öø-ÿ .'_!-]/g, "").replace(/\s+/g, " ").trim()
+    .replace(/^[^A-Za-z0-9À-ÖØ-öø-ÿ]+/, "").slice(0, 16).trim();
+  const flat = s.toLowerCase().replace(/[0@]/g, "o").replace(/[1!|]/g, "i").replace(/3/g, "e").replace(/4/g, "a")
+    .replace(/[5$]/g, "s").replace(/7/g, "t").replace(/[^a-z]/g, "");
+  return BLOCK.some(w => flat.includes(w)) ? "" : s;
+}
+function buildBoard(rows, meKey){
+  const best = {};
+  for (const r of rows){
+    const k = r.player + "|" + r.name.toLowerCase(), b = best[k];
+    if (!b || r.total > b.total || (r.total === b.total && r.kept > b.kept)) best[k] = Object.assign({k}, r);
+  }
+  const list = Object.values(best).sort((a, b) => b.total - a.total || b.kept - a.kept || a.t - b.t);
+  const mi = meKey ? list.findIndex(r => r.k === meKey) : -1;
+  return {players:list.length,
+    top:list.slice(0, 10).map((r, i) => ({rank:i + 1, name:r.name, total:r.total, kept:r.kept, me:r.k === meKey})),
+    me:mi >= 0 ? {rank:mi + 1, name:list[mi].name, total:list[mi].total, kept:list[mi].kept} : null};
+}
+const LB = {
+  url: CONFIG.leaderboardUrl || (DEBUG && new URLSearchParams(location.search).get("lb")) || "",
+  player: (() => {
+    let p = store.get("harborSweepPlayer");
+    if (!p || !/^[a-z0-9]{8,24}$/.test(p)){ p = (Math.random().toString(36).slice(2, 10) + Date.now().toString(36)).slice(0, 16); store.set("harborSweepPlayer", p); }
+    return p;
+  })(),
+  read(k){ try { const v = JSON.parse(store.get(k) || "[]"); return Array.isArray(v) ? v : []; } catch (e) { return []; } },
+  write(k, v){ store.set(k, JSON.stringify(v)); },
+  name(){ return G.pilot || store.get("harborSweepName") || ""; },
+  localBoards(name){
+    const rows = this.read("harborSweepScores").filter(r => r && r.name);
+    const day = new Date().toDateString();
+    const meKey = name ? this.player + "|" + name.toLowerCase() : "";
+    return {ok:true, local:true,
+      today:buildBoard(rows.filter(r => new Date(r.t).toDateString() === day), meKey), all:buildBoard(rows, meKey)};
+  },
+  async req(body){
+    const ctl = window.AbortController ? new AbortController() : null;
+    const timer = setTimeout(() => ctl && ctl.abort(), 10000);
+    try {
+      let u = this.url, opts = {};
+      if (body) opts = {method:"POST", body:JSON.stringify(body), headers:{"Content-Type":"text/plain;charset=utf-8"}};
+      else u += (u.includes("?") ? "&" : "?") + "player=" + encodeURIComponent(this.player) + "&name=" + encodeURIComponent(this.name());
+      if (ctl) opts.signal = ctl.signal;
+      const r = await fetch(u, opts);
+      if (!r.ok) throw new Error("HTTP " + r.status);
+      return await r.json();
+    } finally { clearTimeout(timer); }
+  },
+  async load(){
+    if (!this.url) return this.localBoards(this.name());
+    try { const d = await this.req(null); if (d && d.today) return d; throw new Error("bad reply"); }
+    catch (e) { const b = this.localBoards(this.name()); b.offline = true; return b; }
+  },
+  async flush(){                                  // send queued scores, oldest first
+    let q = this.read("harborSweepPending"), last = null;
+    while (q.length){
+      let d;
+      try { d = await this.req(q[0]); } catch (e) { return {sent:false, last}; }
+      if (d && d.ok === false && (d.error === "too fast" || d.error === "busy")) return {sent:false, last};   // keep it, try later
+      q.shift(); this.write("harborSweepPending", q);
+      if (d && d.today) last = d;
+    }
+    return {sent:true, last};
+  },
+  async submit(entry){
+    const e = Object.assign({player:this.player, t:Date.now()}, entry);
+    const mine = this.read("harborSweepScores");
+    mine.push({t:e.t, name:e.name, total:e.l1 + e.l2, kept:e.kept, player:e.player});
+    this.write("harborSweepScores", mine.slice(-300));
+    if (!this.url) return this.localBoards(e.name);
+    const q = this.read("harborSweepPending"); q.push(e); this.write("harborSweepPending", q.slice(-50));
+    const res = await this.flush();
+    if (res.sent) return res.last || await this.load();
+    const b = this.localBoards(e.name); b.offline = true; return b;
+  }
+};
+function mountBoard(wrap){
+  const tabs = [...wrap.querySelectorAll("[data-tab]")];
+  wrap.dataset.tab = "today";
+  for (const b of tabs) b.addEventListener("click", () => {
+    wrap.dataset.tab = b.dataset.tab;
+    for (const x of tabs) x.setAttribute("aria-selected", String(x === b));
+    renderBoard(wrap.querySelector(".board"), wrap._data, wrap.dataset.tab);
+  });
+}
+function showBoard(wrap, data){ wrap._data = data; renderBoard(wrap.querySelector(".board"), data, wrap.dataset.tab || "today"); }
+function renderBoard(ol, data, tab, max){
+  ol.textContent = "";
+  const li = (cls, text) => { const e = document.createElement("li"); if (cls) e.className = cls; if (text) e.textContent = text; ol.appendChild(e); return e; };
+  if (!data){ li("empty", "Loading scores…"); return; }
+  const b = data[tab];
+  if (!b || !b.top.length){ li("empty", tab === "today" ? "No scores yet today. Be the first." : "No scores yet. Be the first."); return; }
+  const rows = b.top.slice(0, max || 10);
+  const add = r => {
+    const e = li(r.me ? "me" : "");
+    for (const [c, v] of [["rk", r.rank], ["nm", r.name], ["sc", r.total]]){ const s = document.createElement("span"); s.className = c; s.textContent = v; e.appendChild(s); }
+  };
+  rows.forEach(add);
+  if (b.me && b.me.rank > rows.length){ li("gap", "⋯"); add(Object.assign({me:true}, b.me)); }
+}
+function setLbMsg(el, d, name, saved){
+  el.textContent = "";
+  const add = (t, bold) => { const n = bold ? document.createElement("b") : document.createTextNode(t); if (bold) n.textContent = t; el.appendChild(n); };
+  if (!d) return;
+  if (d.offline){
+    add(saved ? "No connection right now. Your score is saved on this phone and will upload the next time you play."
+              : "Can't reach the leaderboard right now. Showing scores from this device.");
+    return;
+  }
+  if (saved && name){ add("Saved as "); add(name, true); add(". "); }
+  const me = d.today && d.today.me;
+  if (saved && me){ add("You're "); add("#" + me.rank, true); add(" of " + d.today.players + (d.today.players === 1 ? " player" : " players") + (d.local ? " on this device today." : " today.")); }
+  else if (d.local && !saved) add("Scores from this device.");
+}
+let lbToken = 0;
+async function submitScore(entry){
+  const tok = ++lbToken, wrap = $("lbEnd");
+  $("lbMsg").textContent = "Saving your score…"; showBoard(wrap, null);
+  const d = await LB.submit(entry);
+  if (tok !== lbToken) return;
+  showBoard(wrap, d); setLbMsg($("lbMsg"), d, entry.name, true);
+  refreshSide(d);
+}
+async function openLB(){
+  lbReturn = CARDS.find(c => !$(c).hidden) || null;
+  show("c-lb"); const w = $("lbView"); showBoard(w, null); $("lbMsg2").textContent = "";
+  const d = await LB.load();
+  if ($("c-lb").hidden) return;
+  showBoard(w, d); setLbMsg($("lbMsg2"), d, null, false);
+}
+function closeLB(){ show(lbReturn && lbReturn !== "c-lb" ? lbReturn : null); }
+const mqSide = window.matchMedia ? matchMedia("(min-width:980px) and (min-height:640px)") : null;
+async function refreshSide(d){
+  if (!mqSide || !mqSide.matches || document.hidden) return;
+  d = d || await LB.load();
+  $("sideBoardBox").hidden = false; renderBoard($("sideBoard"), d, "today", 5);
+}
 
 /* ---------- obstacles ---------- */
 function obstacleNear(px, py, pad, withBuoy, withWarn){
@@ -1659,6 +1879,11 @@ $("btnQR").addEventListener("click", openQR);
 $("btnQR2").addEventListener("click", openQR);
 $("btnQRClose").addEventListener("click", closeQR);
 $("btnShare").addEventListener("click", share);
+$("btnLB").addEventListener("click", openLB);
+$("btnLBClose").addEventListener("click", closeLB);
+$("pilotName").addEventListener("keydown", e => { if (e.key === "Enter"){ e.preventDefault(); $("btnGo1").click(); } });
+$("pilotName").addEventListener("focus", e => { try { e.target.select(); } catch (err) {} });
+mountBoard($("lbEnd")); mountBoard($("lbView"));
 let resizeT = 0;
 window.addEventListener("resize", () => { clearTimeout(resizeT); resizeT = setTimeout(layout, 60); });
 
@@ -1674,9 +1899,11 @@ Sound.set(Sound.on);
 toTitle();
 if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => renderStatic()).catch(() => {});
 requestAnimationFrame(frame);
+if (LB.url && LB.read("harborSweepPending").length) LB.flush().then(r => r.last && refreshSide(r.last));
+refreshSide(); setInterval(() => refreshSide(), 30000);
 
 /* debug hook for testing: window.__hs exposes state only when ?debug is in the URL */
-if (/[?&]debug\b/.test(location.search)) window.__hs = {G, endLevel1, endGame, startPlan, launch, resume,
+if (DEBUG) window.__hs = {G, LB, endLevel1, endGame, startPlan, launch, resume, openLB, refreshSide,
   step(n, fn){ for (let i = 0; i < n; i++){ if (fn) fn(); update(1 / 60); } draw(); }};
 })();
 </script>
