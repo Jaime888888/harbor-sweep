@@ -167,6 +167,34 @@ button.linkish{background:none;color:var(--foam);font-family:var(--body);font-we
 #rotate svg{width:56px;height:56px;fill:none;stroke:var(--gold);stroke-width:3}
 #rotate b{font-family:var(--display);font-size:30px;text-transform:uppercase;letter-spacing:.04em}
 #rotate.on{display:flex}
+/* The main button of a card stays on screen even when the card is taller than the phone */
+.cta{position:sticky;bottom:0;z-index:1;margin:0 -20px;padding:10px 20px;background:var(--navy);
+  box-shadow:0 -14px 14px -12px rgba(0,0,0,.7)}
+.card > .cta:last-child{margin-bottom:-20px;padding-bottom:20px}
+@media (max-height:760px){
+  .card{padding:16px 18px 18px;gap:11px;border-top-width:8px}
+  .cta{margin:0 -18px}
+  .card > .cta:last-child{margin-bottom:-18px;padding-bottom:18px}
+  h2{font-size:31px}
+  .steps{gap:7px}
+  .steps li{font-size:15px;line-height:1.3}
+  .steps li i{font-size:19px}
+  .card p{font-size:15px;line-height:1.4}
+  button{padding:12px 16px;font-size:22px}
+  .field input{padding:9px 11px}
+  .opt{display:none}
+}
+@media (max-height:600px){
+  .scrim{padding-top:10px;padding-bottom:10px}
+  h1{font-size:44px}
+  h2{font-size:27px}
+  .steps li{font-size:14px}
+  .card p{font-size:14px}
+}
+@media (max-width:360px){
+  button.sm{font-size:15px;padding:9px 6px;letter-spacing:.03em}
+}
+
 /* Leaderboard */
 .field{display:flex;flex-direction:column;gap:7px;font-size:12px;letter-spacing:.14em;text-transform:uppercase;font-weight:700;color:var(--gold)}
 .field input{font-family:var(--body);font-size:18px;font-weight:700;letter-spacing:0;text-transform:none;color:var(--foam);
@@ -270,7 +298,7 @@ button.linkish{background:none;color:var(--foam);font-family:var(--body);font-we
           <input id="pilotName" type="text" maxlength="16" autocomplete="off" autocapitalize="words" autocorrect="off" spellcheck="false" enterkeyhint="go" placeholder="Type your name">
         </label>
         <p class="small">You have <span id="l1secs">40</span> seconds.</p>
-        <div class="row"><button id="btnGo1" type="button">Take the controls</button></div>
+        <div class="row cta"><button id="btnGo1" type="button">Take the controls</button></div>
       </div>
     </div>
 
@@ -280,7 +308,7 @@ button.linkish{background:none;color:var(--foam);font-family:var(--body);font-we
         <div class="eyebrow">Level 1 complete</div>
         <h2>You scooped <b id="r1n">0</b></h2>
         <p id="r1detail"></p>
-        <p>Real operators steer the rover the same way, standing on the dock with a handheld controller.</p>
+        <p class="opt">Real operators steer the rover the same way, standing on the dock with a handheld controller.</p>
         <div class="rule"></div>
         <div class="eyebrow">Level 2 of 2</div>
         <h2>Auto<b>pilot</b></h2>
@@ -289,7 +317,7 @@ button.linkish{background:none;color:var(--foam);font-family:var(--body);font-we
           <li><i>2</i><span>Dotted trails show where the <strong>current</strong> will carry each piece. Numbers on your route show <strong>when the rover gets there</strong>.</span></li>
           <li><i>3</i><span><strong>Launch.</strong> The rover drives alone and stops by itself for boats and wildlife.</span></li>
         </ul>
-        <div class="row"><button id="btnPlan" type="button">Plan the route</button></div>
+        <div class="row cta"><button id="btnPlan" type="button">Plan the route</button></div>
       </div>
     </div>
 
@@ -322,7 +350,7 @@ button.linkish{background:none;color:var(--foam);font-family:var(--body);font-we
           <div><b id="endStops">0</b><span>Safety stops</span></div>
         </div>
         <p id="endInsight"></p>
-        <div class="row">
+        <div class="row cta">
           <button id="btnAgain" type="button">Sweep again</button>
           <button class="ghost" id="btnShare" type="button">Share</button>
         </div>
@@ -822,7 +850,7 @@ function startCountdown(){
   G.pilotTyped = typed;
   G.pilot = typed || "Pilot " + (100 + Math.floor(Math.random() * 900));
   if (typed) store.set("harborSweepName", typed);
-  $("pilotName").blur();
+  $("pilotName").blur(); unshiftPage();
   G.mode = "count1"; G.countT = 3; G.joy = null; G.keys = {};
   setHud("Level 1 · Remote control"); $("count").textContent = "0";
   G.timeLeft = G.total = CONFIG.level1Seconds; G.lastClock = ""; setClock(1, fmt(G.total));
@@ -830,7 +858,13 @@ function startCountdown(){
 }
 function beginPlay1(){
   G.mode = "play1"; G.goT = .8; Sound.count(true);
-  toast("Drag anywhere to steer", 2000, true);
+  toast(matchMedia("(pointer:fine)").matches ? "Steer with the arrow keys, or drag" : "Drag anywhere to steer", 2000, true);
+}
+// iPhones scroll the page up to make room for the keyboard and sometimes leave it there,
+// which shifts the whole game. Put it back once the keyboard is gone.
+function unshiftPage(){
+  const fix = () => { if (window.scrollX || window.scrollY) window.scrollTo(0, 0); document.documentElement.scrollTop = 0; document.body.scrollTop = 0; };
+  fix(); setTimeout(fix, 120); setTimeout(fix, 400);
 }
 function endLevel1(){
   G.mode = "result1"; G.joy = null; G.rover.vx = G.rover.vy = 0; G.rover.stall = 0;
@@ -901,10 +935,17 @@ function endGame(){
   Sound.fanfare(); show("c-end"); $("c-end").scrollTop = 0;
 }
 function countUp(el, n){
-  if (reduceMotion || n === 0){ el.textContent = n; return; }
+  const tok = el._countTok = (el._countTok || 0) + 1;     // a newer count-up on the same number wins
+  el.textContent = reduceMotion ? n : 0;
+  if (reduceMotion || n === 0) return;
   const t0 = performance.now(), d = 900;
-  const step = now => { const k = Math.min(1, (now - t0) / d); el.textContent = Math.round(n * (1 - Math.pow(1 - k, 3))); if (k < 1) requestAnimationFrame(step); };
+  const step = now => {
+    if (el._countTok !== tok) return;
+    const k = Math.min(1, (now - t0) / d); el.textContent = Math.round(n * (1 - Math.pow(1 - k, 3)));
+    if (k < 1) requestAnimationFrame(step);
+  };
   requestAnimationFrame(step);
+  setTimeout(() => { if (el._countTok === tok) el.textContent = n; }, d + 400);   // lands on the right number even if frames stall
 }
 
 function pause(){
@@ -941,9 +982,11 @@ function addP(p){ if (G.parts.length < 320) G.parts.push(p); }
 const DEBUG = /[?&]debug\b/.test(location.search);
 const BLOCK = ["fuck", "shit", "bitch", "cunt", "nigg", "faggot", "pussy", "whore", "slut", "nazi", "hitler",
                "asshole", "retard", "puto", "pendej", "mierda", "verga", "chinga", "culero", "pinche"];
+// Letters from any language, numbers and a little punctuation. Must match cleanName_ in leaderboard/Code.gs.
 function cleanName(s){
-  s = String(s || "").replace(/[^A-Za-z0-9À-ÖØ-öø-ÿ .'_!-]/g, "").replace(/\s+/g, " ").trim()
-    .replace(/^[^A-Za-z0-9À-ÖØ-öø-ÿ]+/, "").slice(0, 16).trim();
+  s = String(s || "").normalize("NFC").replace(/[^\p{L}\p{M}\p{N} .'_!-]/gu, "").replace(/\s+/g, " ").trim()
+    .replace(/^[^\p{L}\p{N}]+/u, "");
+  s = Array.from(s).slice(0, 16).join("").trim();
   const flat = s.toLowerCase().replace(/[0@]/g, "o").replace(/[1!|]/g, "i").replace(/3/g, "e").replace(/4/g, "a")
     .replace(/[5$]/g, "s").replace(/7/g, "t").replace(/[^a-z]/g, "");
   return BLOCK.some(w => flat.includes(w)) ? "" : s;
@@ -961,7 +1004,8 @@ function buildBoard(rows, meKey){
     me:mi >= 0 ? {rank:mi + 1, name:list[mi].name, total:list[mi].total, kept:list[mi].kept} : null};
 }
 const LB = {
-  url: CONFIG.leaderboardUrl || (DEBUG && new URLSearchParams(location.search).get("lb")) || "",
+  // ?debug&lb=<url> points testing at a fake leaderboard so test games never reach the real one
+  url: (DEBUG && new URLSearchParams(location.search).has("lb")) ? new URLSearchParams(location.search).get("lb") : CONFIG.leaderboardUrl || "",
   player: (() => {
     let p = store.get("harborSweepPlayer");
     if (!p || !/^[a-z0-9]{8,24}$/.test(p)){ p = (Math.random().toString(36).slice(2, 10) + Date.now().toString(36)).slice(0, 16); store.set("harborSweepPlayer", p); }
@@ -992,22 +1036,33 @@ const LB = {
   },
   async load(){
     if (!this.url) return this.localBoards(this.name());
+    if (this.read("harborSweepPending").length){ const f = await this.flush(); if (f.last) return f.last; }
     try { const d = await this.req(null); if (d && d.today) return d; throw new Error("bad reply"); }
     catch (e) { const b = this.localBoards(this.name()); b.offline = true; return b; }
   },
-  async flush(){                                  // send queued scores, oldest first
-    let q = this.read("harborSweepPending"), last = null;
-    while (q.length){
+  // One upload run at a time: a second caller waits for the first, so the queue is never
+  // overwritten with a stale copy and no score is sent twice in parallel.
+  flush(){
+    const run = () => this.flushNow();
+    this.flushing = (this.flushing || Promise.resolve()).then(run, run);
+    return this.flushing;
+  },
+  async flushNow(){                               // send queued scores, oldest first
+    let last = null;
+    for (;;){
+      const q = this.read("harborSweepPending");
+      if (!q.length) return {sent:true, last};
+      const item = q[0];
       let d;
-      try { d = await this.req(q[0]); } catch (e) { return {sent:false, last}; }
-      if (d && d.ok === false && (d.error === "too fast" || d.error === "busy")) return {sent:false, last};   // keep it, try later
-      q.shift(); this.write("harborSweepPending", q);
+      try { d = await this.req(item); } catch (e) { return {sent:false, why:"offline", last}; }
+      if (d && d.ok === false && (d.error === "too fast" || d.error === "busy")) return {sent:false, why:"busy", last};   // keep it, try later
+      this.write("harborSweepPending", this.read("harborSweepPending").filter(x => !(x.t === item.t && x.gid === item.gid && x.player === item.player)));
       if (d && d.today) last = d;
     }
-    return {sent:true, last};
   },
   async submit(entry){
-    const e = Object.assign({player:this.player, t:Date.now()}, entry);
+    // gid: a one-off id for this game, so the server can ignore it if the same game is sent twice
+    const e = Object.assign({player:this.player, t:Date.now(), gid:Math.random().toString(36).slice(2, 12)}, entry);
     const mine = this.read("harborSweepScores");
     mine.push({t:e.t, name:e.name, total:e.l1 + e.l2, kept:e.kept, player:e.player});
     this.write("harborSweepScores", mine.slice(-300));
@@ -1015,7 +1070,7 @@ const LB = {
     const q = this.read("harborSweepPending"); q.push(e); this.write("harborSweepPending", q.slice(-50));
     const res = await this.flush();
     if (res.sent) return res.last || await this.load();
-    const b = this.localBoards(e.name); b.offline = true; return b;
+    const b = this.localBoards(e.name); b.offline = true; b.busy = res.why === "busy"; return b;
   }
 };
 function mountBoard(wrap){
@@ -1047,8 +1102,9 @@ function setLbMsg(el, d, name, saved){
   const add = (t, bold) => { const n = bold ? document.createElement("b") : document.createTextNode(t); if (bold) n.textContent = t; el.appendChild(n); };
   if (!d) return;
   if (d.offline){
-    add(saved ? "No connection right now. Your score is saved on this phone and will upload the next time you play."
-              : "Can't reach the leaderboard right now. Showing scores from this device.");
+    add(!saved ? "Can't reach the leaderboard right now. Showing scores from this device."
+      : d.busy ? "The leaderboard is busy. Your score is saved on this device and will upload in a moment."
+      : "No connection right now. Your score is saved on this device and will upload when you're back online.");
     return;
   }
   if (saved && name){ add("Saved as "); add(name, true); add(". "); }
@@ -1775,7 +1831,7 @@ function drawPops(){
   ctx.globalAlpha = 1;
 }
 function drawJoy(){
-  const j = G.joy; if (!j || G.mode !== "play1") return;
+  const j = G.joy; if (!j || (G.mode !== "play1" && G.mode !== "count1")) return;
   ctx.save();
   ctx.fillStyle = "rgba(7,14,28,.18)"; circle(j.ox, j.oy, 48); ctx.fill();
   ctx.strokeStyle = "rgba(244,239,225,.6)"; ctx.lineWidth = 2.5; circle(j.ox, j.oy, 48); ctx.stroke();
@@ -1822,13 +1878,14 @@ cv.addEventListener("pointerdown", e => {
   if (G.paused) return;
   try { cv.setPointerCapture(e.pointerId); } catch (err) {}
   const p = pt(e);
-  if (G.mode === "play1" && !G.joy) G.joy = {ox:p.x, oy:p.y, x:p.x, y:p.y, id:e.pointerId};
+  // a finger put down during the 3-2-1 countdown is already steering when the level starts
+  if ((G.mode === "play1" || G.mode === "count1") && !G.joy) G.joy = {ox:p.x, oy:p.y, x:p.x, y:p.y, id:e.pointerId};
   else if (G.mode === "plan"){ G.drawing = true; G.batteryNag = false; G.strokes.push(G.path.length); addPathPoint(p); }
 });
 cv.addEventListener("pointermove", e => {
   if (G.paused) return;
   const p = pt(e);
-  if (G.mode === "play1" && G.joy && G.joy.id === e.pointerId){ G.joy.x = p.x; G.joy.y = p.y; }
+  if ((G.mode === "play1" || G.mode === "count1") && G.joy && G.joy.id === e.pointerId){ G.joy.x = p.x; G.joy.y = p.y; }
   else if (G.mode === "plan" && G.drawing){
     const ev = e.getCoalescedEvents ? e.getCoalescedEvents() : null;
     if (ev && ev.length) for (const c of ev) addPathPoint(pt(c)); else addPathPoint(p);
@@ -1845,6 +1902,9 @@ const up = e => {
 cv.addEventListener("pointerup", up); cv.addEventListener("pointercancel", up);
 cv.addEventListener("contextmenu", e => e.preventDefault());
 window.addEventListener("keydown", e => {
+  if (e.key === "Escape" && !$("c-qr").hidden){ closeQR(); e.preventDefault(); return; }
+  if (e.key === "Escape" && !$("c-lb").hidden){ closeLB(); e.preventDefault(); return; }
+  if (e.target && e.target.tagName === "INPUT") return;          // typing a name is not steering
   if ((e.key === "Escape" || e.key === "p" || e.key === "P") && ACTIVE.has(G.mode)){ G.paused ? resume() : pause(); e.preventDefault(); return; }
   if (G.mode === "plan" && !G.paused){
     if (e.key === "Enter" && !$("btnLaunch").disabled && document.activeElement === document.body){ launch(); e.preventDefault(); }
@@ -1900,6 +1960,8 @@ $("btnLB").addEventListener("click", openLB);
 $("btnLBClose").addEventListener("click", closeLB);
 $("pilotName").addEventListener("keydown", e => { if (e.key === "Enter"){ e.preventDefault(); $("btnGo1").click(); } });
 $("pilotName").addEventListener("focus", e => { try { e.target.select(); } catch (err) {} });
+$("pilotName").addEventListener("blur", unshiftPage);
+window.addEventListener("online", () => { if (LB.url && LB.read("harborSweepPending").length) LB.flush().then(r => r.last && refreshSide(r.last)); });
 mountBoard($("lbEnd")); mountBoard($("lbView"));
 let resizeT = 0;
 window.addEventListener("resize", () => { clearTimeout(resizeT); resizeT = setTimeout(layout, 60); });

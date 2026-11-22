@@ -35,8 +35,9 @@ function doPost(e) {
   var name = cleanName_(d.name, false);
 
   var cache = CacheService.getScriptCache();
-  var gameKey = 'g' + player + '_' + String(d.t || '').replace(/[^0-9]/g, '').slice(0, 15);
-  if (d.t && cache.get(gameKey)) return out_(boards_(rows_(), player, name));   // same game sent twice: already saved
+  var gameId = cleanId_(d.gid) || String(d.t || '').replace(/[^0-9]/g, '').slice(0, 15);
+  var gameKey = 'g' + player + '_' + gameId;
+  if (gameId && cache.get(gameKey)) return out_(boards_(rows_(), player, name));   // same game sent twice: already saved
   var rateKey = 'r' + player, recent = Number(cache.get(rateKey)) || 0;
   if (recent >= 8) return out_({ ok: false, error: 'too fast' });               // a real game takes two minutes
 
@@ -48,7 +49,7 @@ function doPost(e) {
   } finally {
     lock.releaseLock();
   }
-  if (d.t) cache.put(gameKey, '1', 21600);
+  if (gameId) cache.put(gameKey, '1', 21600);
   cache.put(rateKey, String(recent + 1), 60);
   return out_(boards_(rows_(), player, name));
 }
@@ -110,12 +111,13 @@ function num_(v, max) {
 
 function cleanId_(s) { return String(s || '').replace(/[^a-z0-9]/gi, '').slice(0, 24); }
 
-/* Letters, numbers and a little punctuation only, so nothing can turn into a formula. */
+/* Letters from any language, numbers and a little punctuation, starting with a letter or number,
+   so nothing can turn into a formula. Must match cleanName in index.html. */
 function cleanName_(s, allowEmpty) {
-  s = String(s || '').replace(/[^A-Za-z0-9À-ÖØ-öø-ÿ .'_!-]/g, '')
+  s = String(s || '').normalize('NFC').replace(/[^\p{L}\p{M}\p{N} .'_!-]/gu, '')
     .replace(/\s+/g, ' ').trim()
-    .replace(/^[^A-Za-z0-9À-ÖØ-öø-ÿ]+/, '')
-    .slice(0, 16).trim();
+    .replace(/^[^\p{L}\p{N}]+/u, '');
+  s = Array.from(s).slice(0, 16).join('').trim();
   var flat = s.toLowerCase().replace(/[0@]/g, 'o').replace(/[1!|]/g, 'i').replace(/3/g, 'e')
     .replace(/4/g, 'a').replace(/[5$]/g, 's').replace(/7/g, 't').replace(/[^a-z]/g, '');
   if (s && BLOCK.some(function (w) { return flat.indexOf(w) >= 0; })) s = '';
