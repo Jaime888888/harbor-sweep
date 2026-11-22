@@ -166,7 +166,7 @@ button.linkish{background:none;color:var(--foam);font-family:var(--body);font-we
   gap:14px;text-align:center;padding:24px}
 #rotate svg{width:56px;height:56px;fill:none;stroke:var(--gold);stroke-width:3}
 #rotate b{font-family:var(--display);font-size:30px;text-transform:uppercase;letter-spacing:.04em}
-@media (orientation:landscape) and (max-height:500px) and (pointer:coarse){#rotate{display:flex}}
+#rotate.on{display:flex}
 /* Leaderboard */
 .field{display:flex;flex-direction:column;gap:7px;font-size:12px;letter-spacing:.14em;text-transform:uppercase;font-weight:700;color:var(--gold)}
 .field input{font-family:var(--body);font-size:18px;font-weight:700;letter-spacing:0;text-transform:none;color:var(--foam);
@@ -1858,8 +1858,25 @@ window.addEventListener("blur", () => { G.keys = {}; G.joy = null; G.drawing = f
 document.addEventListener("visibilitychange", () => {
   if (document.hidden){ pause(); Sound.suspend(); } else Sound.resume();
 });
-const mqRot = window.matchMedia ? matchMedia("(orientation: landscape) and (max-height: 500px) and (pointer: coarse)") : null;
-if (mqRot){ const h = e => { if (e.matches) pause(); }; mqRot.addEventListener ? mqRot.addEventListener("change", h) : mqRot.addListener(h); }
+/* "Turn your phone upright": decided by how the phone is actually held, not by the visible area,
+   because an on-screen keyboard makes the visible area wider than tall while the phone is upright. */
+function checkRotate(){
+  const el = $("rotate"), a = document.activeElement;
+  const typing = !!a && (a.tagName === "INPUT" || a.tagName === "TEXTAREA");
+  let land = false;
+  if (screen.orientation && typeof screen.orientation.type === "string") land = screen.orientation.type.indexOf("landscape") === 0;
+  else if (typeof window.orientation === "number") land = Math.abs(window.orientation) === 90;
+  const phone = Math.min(screen.width, screen.height) < 500 && matchMedia("(pointer:coarse)").matches;
+  const on = land && phone && !typing;
+  if (on !== el.classList.contains("on")){ el.classList.toggle("on", on); if (on) pause(); }
+}
+const checkRotateSoon = () => setTimeout(checkRotate, 60);
+window.addEventListener("resize", checkRotateSoon);
+window.addEventListener("orientationchange", checkRotateSoon);
+if (screen.orientation && screen.orientation.addEventListener) screen.orientation.addEventListener("change", checkRotateSoon);
+document.addEventListener("focusin", checkRotateSoon);
+document.addEventListener("focusout", checkRotateSoon);
+checkRotate();
 if (mqReduce){ const h = e => { reduceMotion = e.matches; }; mqReduce.addEventListener ? mqReduce.addEventListener("change", h) : mqReduce.addListener(h); }
 
 document.addEventListener("click", e => { if (e.target.closest && e.target.closest("button")){ Sound.init(); Sound.click(); } }, true);
