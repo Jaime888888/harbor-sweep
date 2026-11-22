@@ -1,0 +1,45 @@
+# Every hour, copies the current leaderboard (today + all time) into leaderboard/scores.json,
+# so the standings are also kept in this repo. Commits only when something changed.
+# Run it by hand any time: Actions tab > Save leaderboard > Run workflow.
+name: Save leaderboard
+
+on:
+  schedule:
+    - cron: "17 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  save:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download leaderboard
+        env:
+          LEADERBOARD_URL: https://script.google.com/macros/s/AKfycbzuo6x9py-tuyiWN-J1L-lce4d0E0TUpdcWHgCz8Yz7ReLjqeI6wZArzhKGGx7lttem9w/exec
+        run: |
+          curl -sfL --retry 3 "$LEADERBOARD_URL" -o /tmp/board.json
+          python3 - <<'EOF'
+          import json
+          d = json.load(open("/tmp/board.json"))
+          assert d.get("ok") and "all" in d and "today" in d, d
+          def clean(b):
+              return {"players": b["players"],
+                      "top": [{k: r[k] for k in ("rank", "name", "total", "kept")} for r in b["top"]]}
+          out = {"all_time": clean(d["all"]), "today_pacific": clean(d["today"])}
+          with open("leaderboard/scores.json", "w") as f:
+              json.dump(out, f, indent=2)
+              f.write("\n")
+          EOF
+
+      - name: Commit if changed
+        run: |
+          git config user.name "leaderboard-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add leaderboard/scores.json
+          if git diff --cached --quiet; then echo "No change"; exit 0; fi
+          git commit -m "Save leaderboard"
+          git push

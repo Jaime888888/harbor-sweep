@@ -6,15 +6,12 @@ Play: https://jaime888888.github.io/harbor-sweep/
 
 ## Leaderboard
 
-Every finished game is saved to a shared leaderboard (Today and All time, best score per player).
-Scores are stored in a Google Sheet through a small Apps Script web app:
+Every finished game is saved to one shared leaderboard (Today and All time, best score per player).
 
-1. Make a new Google Sheet (sheets.new) named "Harbor Sweep scores".
-2. Extensions > Apps Script. Delete what is there, paste [`leaderboard/Code.gs`](leaderboard/Code.gs), click Save.
-3. Deploy > New deployment > gear icon > Web app. Execute as: **Me**. Who has access: **Anyone**. Deploy, then allow access.
-4. Copy the Web app URL (ends in `/exec`) into `leaderboardUrl` near the top of `index.html`.
-
-Each game adds a row to the sheet's "Scores" tab. Delete a row to remove a bad name.
-Until a URL is set, each device keeps its own leaderboard. Scores that can't be sent (no signal) wait on the phone and upload next time.
+- **Where scores live:** the Google Sheet "Harbor Sweep scores" in the owner's Google Drive (tab "Scores"). One row per game. Delete a row to remove a bad name.
+- **Copy in this repo:** [`leaderboard/scores.json`](leaderboard/scores.json) is refreshed every hour by the "Save leaderboard" GitHub Action (Actions tab > Save leaderboard > Run workflow to refresh now).
+- **How it connects:** the Sheet runs [`leaderboard/Code.gs`](leaderboard/Code.gs) as an Apps Script web app. Its address is `leaderboardUrl` near the top of `index.html`.
+- **Editing the script later:** in Apps Script use Deploy > Manage deployments > Edit > Version: New version, so the address stays the same.
+- **No signal:** scores wait on the phone and upload next time the game is opened or finished.
 
 Student concept by a USC WRIT 340 ATLAS team for Clean Earth Rovers. Game scores are not real cleanup data.
