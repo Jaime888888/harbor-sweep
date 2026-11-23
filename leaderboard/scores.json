@@ -11,14 +11,7 @@
     ]
   },
   "today_pacific": {
-    "players": 1,
-    "top": [
-      {
-        "rank": 1,
-        "name": "Bradin",
-        "total": 34,
-        "kept": 72
-      }
-    ]
+    "players": 0,
+    "top": []
   }
 }
